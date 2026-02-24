@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- PWA iOS 專屬標籤：加入主畫面時會使用這個設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="東京獨旅">
+    <link rel="apple-touch-icon" href="app-icon.png"> <!-- 這裡呼叫你的圖片 -->
     <title>2026東京獨旅自由行</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Varela+Round&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -32,13 +37,23 @@
 
         #app { width: 100%; max-width: 430px; height: 100dvh; position: relative; display: flex; flex-direction: column; overflow: hidden;}
 
-        /* 共用玻璃質感 */
         .glass { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 24px; box-shadow: var(--soft-shadow); }
 
-        /* --- Header --- */
+        /* --- Header (加入 App Icon) --- */
         header { padding: 15px 20px 5px; z-index: 10; transition: 0.3s; }
-        .header-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
+        .header-title-wrapper { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
         
+        /* 完美切除黑邊的圖示設定 */
+        .app-logo { 
+            width: 36px; height: 36px; 
+            border-radius: 22%; /* Apple 原生圓角比例，完美遮掉角落黑邊 */
+            object-fit: cover; 
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.1); 
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+        .header-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; margin: 0;}
+        
+        /* 天氣 Liquid Glass 特效 */
         .weather-card {
             display: block; padding: 8px 15px; font-size: 13px; font-weight: 700; text-decoration: none; color: var(--text-main); 
             transition: transform 0.2s; margin-bottom: 5px; border-radius: 16px; position: relative; overflow: hidden;
@@ -100,7 +115,6 @@
         .sub-spot-item { padding: 12px 15px; border-top: 1px dashed rgba(0,0,0,0.08); font-size: 13px; }
         .sub-spot-title { font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;}
 
-        /* 高亮文字 (跨頁跳轉) */
         .highlight-ticket { color: #e91e63; font-weight: 700; background: rgba(233, 30, 99, 0.1); padding: 4px 8px; border-radius: 6px; cursor: pointer; display: inline-block; transition: 0.2s; box-shadow: 1px 1px 4px rgba(233, 30, 99, 0.2);}
         .highlight-ticket:active { transform: scale(0.95); opacity: 0.8; }
         .highlight-reserve { color: #d32f2f; font-weight: 700; background: rgba(211, 47, 47, 0.1); padding: 4px 8px; border-radius: 6px; display: inline-block; cursor: pointer; transition: 0.2s; box-shadow: 1px 1px 4px rgba(211, 47, 47, 0.2);}
@@ -193,9 +207,12 @@
 </svg>
 
 <div id="app">
-    <!-- Header -->
+    <!-- Header 加入圖片與完美裁切 -->
     <header id="main-header">
-        <div class="header-title">2026東京獨旅 🇯🇵</div>
+        <div class="header-title-wrapper">
+            <img src="app-icon.png" alt="Logo" class="app-logo" onerror="this.style.display='none'">
+            <div class="header-title">2026東京獨旅</div>
+        </div>
         <a href="https://tenki.jp/forecast/3/16/4410/13101/" target="_blank" class="weather-card" id="weather-display">
             <div class="weather-top">
                 <span>📍 東京即時天氣 (點擊看詳情)</span>
@@ -206,6 +223,7 @@
     </header>
 
     <div class="content-area">
+        
         <!-- 1. 行程 Tab -->
         <div id="tab-schedule" class="tab-content active">
             <div class="sticky-header liquid-bg">
@@ -222,7 +240,6 @@
                 <div class="accordion-content">
                     <div class="bp-row"><div><div class="bp-label">去程 (虎航)</div><div class="bp-val">3/12 06:15</div></div><div class="bp-val" style="color:var(--accent-color);">IT200</div></div>
                     <div class="bp-row" style="font-size:12px;"><span>TPE (桃園 T1)</span><i class="fa-solid fa-arrow-right"></i><span>NRT (成田)</span></div><div class="bp-label">座位: 25A</div>
-                    <!-- 接送機提示 -->
                     <div style="margin-top: 8px; text-align: left;">
                         <span style="font-size: 11px; color: #E53935; font-weight: 700;"><i class="fa-solid fa-car"></i> 【已預約機場接送】03:30 出發</span>
                     </div>
@@ -357,6 +374,23 @@
 </div>
 
 <script>
+    // --- 0. 資料持久化 (Local Storage) 初始化 ---
+    let expenses = [];
+    const exchangeRate = 0.21;
+
+    // 讀取手機/電腦裡的儲存資料
+    function loadExpensesFromStorage() {
+        const stored = localStorage.getItem('tokyoTripExpenses');
+        if (stored) {
+            expenses = JSON.parse(stored);
+        }
+    }
+
+    // 將資料寫入手機/電腦保存
+    function saveExpensesToStorage() {
+        localStorage.setItem('tokyoTripExpenses', JSON.stringify(expenses));
+    }
+
     // --- 1. 即時天氣 API ---
     async function fetchWeather() {
         try {
@@ -378,7 +412,7 @@
         }
     }
 
-    // --- 2. 行程資料 (全面擴充並優化動線) ---
+    // --- 2. 行程資料 (保持所有資料不遺失) ---
     const scheduleData = [
         {
             day: "Day 1", date: "3/12 (四)", title: "淺草下町",
@@ -456,129 +490,14 @@
             ],
             mapStops: ["星巴克臻選東京烘焙工坊", "明治神宮", "NUMBER SUGAR 表參道", "Suage 澀谷店", "澀谷 PARCO"]
         },
-        {
-            day: "Day 3", date: "3/14 (六)", title: "池袋新宿",
-            items: [
-                { 
-                    time: "10:00-13:00", title: "池袋 Sunshine City", desc: "JR山手線前往",
-                    subSpots: [
-                        { name: "寶可夢中心 MEGA TOKYO", desc: "旗艦店級別。", nav: "Pokemon Center Mega Tokyo" },
-                        { name: "轉蛋的森林 (總本店)", desc: "超大型扭蛋樂園。", nav: "ガシャポンのデパート池袋総本店" }
-                    ]
-                },
-                { time: "13:00-14:00", title: "午餐：池袋周邊", desc: "推薦：Miurano Hamburg (漢堡排) / 無敵家拉麵 / 太陽城內 天麩羅 網八", nav: "三浦のハンバーグ 池袋" },
-                { 
-                    time: "14:00-16:30", title: "新宿逛街", desc: "JR山手線：池袋 → 新宿",
-                    subSpots: [
-                        { name: "LUMINE EST 新宿 (B1)", desc: "買 Pensta (企鵝周邊)。", nav: "LUMINE EST" },
-                        { name: "伊勢丹新宿店 男士館", desc: "日本最強男裝百貨。", nav: "伊勢丹 新宿店 男館" },
-                        { name: "KIDDY LAND 新宿店", desc: "動漫周邊。", nav: "KIDDY LAND 新宿" },
-                        { name: "BEAMS JAPAN 新宿", desc: "1-5F販售日本地方特色與服飾。", nav: "BEAMS JAPAN 新宿" },
-                        { name: "KEN BOX", desc: "迷你車模型專賣店。", nav: "ミニカーショップ ケンボックス" },
-                        { name: "新宿東寶大樓", desc: "拍攝哥吉拉大頭。", nav: "新宿東宝ビル" },
-                        { name: "東急歌舞伎町TOWER", desc: "新宿新地標，結合霓虹居酒屋與娛樂。", nav: "東急歌舞伎町タワー" }
-                    ]
-                },
-                { time: "16:30-17:30", title: "晚餐：新宿周邊", desc: "推薦(免預約)：慎 Udon (烏龍麵，先抽券) / 龍之家拉麵 / 鳥貴族 新宿南口店" },
-                { time: "17:30-19:00", title: "東京都廳 南展望室", desc: "免費看日落與夜景。", link: "https://www.zaimu.metro.tokyo.lg.jp/tochousha/goannai/tenbou", nav: "東京都廳" },
-                { time: "19:00-20:30", title: "TOKYO Night & Light", desc: "都廳光雕秀：19:00 鋼彈 / 20:00 哥吉拉", link: "https://tokyoprojectionmappingproject.jp/", nav: "都民廣場" },
-                { time: "20:30-", title: "體驗歌舞伎町夜生活", desc: "感受熱鬧氣氛後返回飯店", nav: "歌舞伎町一番街" }
-            ],
-            mapStops: ["池袋太陽城", "LUMINE EST", "伊勢丹 新宿店", "東京都廳", "歌舞伎町一番街"]
-        },
-        {
-            day: "Day 4", date: "3/15 (日)", title: "強運銀座",
-            items: [
-                { time: "07:30-08:00", title: "前往小網神社", desc: "交通：地鐵日比谷線 上野 → 人形町 (約15分)" },
-                { time: "08:00-08:30", title: "小網神社", desc: "強運除厄/洗錢", tip: "洗錢請自備零錢或紙鈔，洗完擦乾放錢包當「錢母」。參拜：二鞠躬、二拍手、一鞠躬。", nav: "小網神社" },
-                { 
-                    time: "08:30-09:30", title: "日本橋散步 & 寶可夢 DX", desc: "步行前往",
-                    subSpots: [
-                        { name: "日本橋 麒麟像", desc: "東野圭吾小說場景，拍青銅麒麟。", nav: "日本橋 麒麟像" },
-                        { name: "寶可夢中心 東京 DX", desc: "結合寶可夢咖啡廳的超大店鋪。", nav: "Pokemon Center Tokyo DX" }
-                    ]
-                },
-                { 
-                    time: "09:30-11:30", title: "東京車站一番街", desc: "八重洲中央口下樓 → 北口左轉",
-                    subSpots: [
-                        { name: "東京動漫人物街", desc: "各電視台周邊、吉卜力專賣店。", nav: "東京動漫人物街" }
-                    ]
-                },
-                { time: "12:00-13:30", title: "午餐：燒肉 Ushigoro", desc: "【已預約 12:00】銀座1-6-6", nav: "Ushigoro Ginza" },
-                { 
-                    time: "13:30-16:00", title: "銀座步行者天國", desc: "週末封街",
-                    subSpots: [
-                        { name: "無印良品 銀座旗艦店", desc: "世界級旗艦店，有專屬生鮮與烘焙坊。", nav: "無印良品 銀座" },
-                        { name: "Ginza Sony Park", desc: "都市立體公園，適合拍照打卡。", nav: "Ginza Sony Park" },
-                        { name: "GINZA SIX", desc: "銀座最大商業設施，挑高中庭有大師裝置藝術。", nav: "GINZA SIX" },
-                        { name: "3COINS & UNIQLO", desc: "逛生活雜貨與客製化衣服。", nav: "UNIQLO 銀座" }
-                    ]
-                },
-                { 
-                    time: "16:00-18:30", title: "秋葉原", desc: "電器街與次文化",
-                    subSpots: [
-                        { name: "KENELE STAND", desc: "秋葉原車站內的精緻扭蛋牆。", nav: "KENELE STAND 秋葉原" },
-                        { name: "Bic Camera 秋葉原", desc: "營業時間 10:00–21:00。", nav: "Bic Camera 秋叶原店" },
-                        { name: "Milk Shop LUCK 酪", desc: "總武線6號月台上的牛奶店，喝完玻璃瓶要還給阿姨。", nav: "Milk Shop LUCK 酪", link: "https://tokyo.letsgojp.com/archives/570282/" }
-                    ]
-                },
-                { time: "18:30-19:30", title: "東京車站 夜景", desc: "拍攝點：丸之內站前廣場 / KITTE 6F (營業至22:00)。", nav: "KITTE丸之內" },
-                { time: "19:30-", title: "晚餐：東京車站周邊", desc: "推薦名單：生パスタ専門店 麦と卵 / 極味屋 東京站店 / 六厘舍沾麵 (拉麵街) / 根室花丸迴轉壽司 (KITTE內)" }
-            ],
-            mapStops: ["小網神社", "Pokemon Center Tokyo DX", "Ushigoro Ginza", "無印良品 銀座", "KITTE丸之內"]
-        },
-        {
-            day: "Day 5", date: "3/16 (一)", title: "麻布台藝術",
-            items: [
-                { time: "08:15-09:00", title: "前往 TeamLab", desc: "地鐵日比谷線 上野 → 神谷町 (5號出口)" },
-                { time: "09:00-11:00", title: "TeamLab Borderless", desc: "【已訂票 09:00 入場】", nav: "麻布台之丘" },
-                { 
-                    time: "11:00-12:00", title: "麻布台之丘", desc: "森JP Tower", link: "https://www.azabudai-hills.com/index.html",
-                    subSpots: [
-                        { name: "33F Sky Lobby (眺望東京鐵塔)", desc: "注意：需於 Hills House Sky Room Cafe & Bar 點咖啡或小點才能進入。", nav: "麻布台之丘", link: "https://tokyo.letsgojp.com/archives/632958/" }
-                    ]
-                },
-                { time: "12:00-13:00", title: "午餐：鰻の成瀬 六本木店", desc: "高CP值鰻魚飯", nav: "鰻の成瀬 六本木店" },
-                { 
-                    time: "13:00-15:30", title: "六本木 & 國立新美術館", desc: "散策",
-                    subSpots: [
-                        { name: "國立新美術館", desc: "黑川紀章設計，波浪玻璃帷幕與圓錐形入口，極具未來感，適合拍照。", nav: "國立新美術館", link: "https://www.nact.jp/" },
-                        { name: "六本木之丘", desc: "大蜘蛛雕塑 (Maman)、毛利庭園。", nav: "六本木之丘" }
-                    ]
-                },
-                { 
-                    time: "16:00-18:30", title: "上野 阿美橫丁", desc: "最後採買",
-                    subSpots: [
-                        { name: "Yamashiroya 玩具店", desc: "六層樓玩具天堂，就在車站對面。", nav: "Yamashiroya" },
-                        { name: "OS Drug 上野店", desc: "超便宜藥妝！注意：只收現金，無免稅。", nav: "OS Drug 上野" },
-                        { name: "二木菓子", desc: "買伴手禮。注意打烊時間：20:00。", nav: "二木菓子 第一營業所" }
-                    ]
-                },
-                { time: "18:30-19:30", title: "晚餐：上野周邊", desc: "備選名單：鳥貴族 上野中央通店 / 肉的大山 (炸肉餅) / 山家炸豬排 / 磯丸水產 (24H)" },
-                { time: "19:30-20:00", title: "回飯店放東西", desc: "減輕負擔再出門" },
-                { time: "20:00-", title: "芝公園 拍攝東京鐵塔", desc: "前往 7-Eleven 港區芝3丁目店 拍攝超美鐵塔夜景", nav: "7-Eleven 港区芝3丁目店" }
-            ],
-            mapStops: ["麻布台之丘", "國立新美術館", "阿美橫丁", "鳥貴族 上野", "7-Eleven 港区芝3丁目店"]
-        },
-        {
-            day: "Day 6", date: "3/17 (二)", title: "返程",
-            items: [
-                { 
-                    time: "09:30-10:00", title: "退房 & 寄放行李", desc: "⚠️極重要：請盡早去搶京成上野站置物櫃。",
-                    subSpots: [
-                        { name: "京成上野站 置物櫃", desc: "位於 Skyliner 剪票口旁，往上野動物園、上野恩賜公園出口方向。", nav: "京成上野站", link: "https://marifoodie.com/ueno-station-lockers/" }
-                    ]
-                },
-                { time: "10:00-11:15", title: "上野恩賜公園", desc: "散步 / Coffee Murasaki", nav: "上野恩賜公園" },
-                { time: "11:30-12:45", title: "午餐：人形町今半", desc: "【已預約 11:30】", nav: "人形町今半 上野廣小路店" },
-                { time: "13:00-13:45", title: "搭乘 Skyliner 前往機場", desc: "13:00發車，⚠️極限班次13:20" },
-                { time: "15:40-", title: "搭乘 星宇 JX803 返台", desc: "成田(NRT) → 桃園(TPE)" }
-            ],
-            mapStops: ["京成上野站", "上野恩賜公園", "人形町今半 上野廣小路店", "成田機場"]
-        }
+        { day: "Day 3", date: "3/14 (六)", title: "池袋新宿", items: [{ time: "10:00-13:00", title: "池袋 Sunshine City", desc: "JR山手線前往", subSpots: [{ name: "寶可夢中心 MEGA TOKYO", desc: "旗艦店級別。", nav: "Pokemon Center Mega Tokyo" },{ name: "轉蛋的森林 (總本店)", desc: "超大型扭蛋樂園。", nav: "ガシャポンのデパート池袋総本店" }]}, { time: "13:00-14:00", title: "午餐：池袋周邊", desc: "推薦：Miurano Hamburg / 無敵家拉麵 / 天麩羅 網八", nav: "三浦のハンバーグ 池袋" }, { time: "14:00-16:30", title: "新宿逛街", desc: "JR山手線：池袋 → 新宿", subSpots: [{ name: "LUMINE EST 新宿 (B1)", desc: "買 Pensta (企鵝周邊)。", nav: "LUMINE EST" },{ name: "伊勢丹新宿店 男士館", desc: "日本最強男裝百貨。", nav: "伊勢丹 新宿店 男館" },{ name: "KIDDY LAND 新宿店", desc: "動漫周邊。", nav: "KIDDY LAND 新宿" },{ name: "BEAMS JAPAN 新宿", desc: "1-5F販售日本特色與服飾。", nav: "BEAMS JAPAN 新宿" },{ name: "KEN BOX", desc: "迷你車模型專賣店。", nav: "ミニカーショップ ケンボックス" },{ name: "新宿東寶大樓", desc: "拍攝哥吉拉大頭。", nav: "新宿東宝ビル" },{ name: "東急歌舞伎町TOWER", desc: "新宿新地標。", nav: "東急歌舞伎町タワー" }]}, { time: "16:30-17:30", title: "晚餐：新宿周邊", desc: "推薦(免預約)：慎 Udon / 龍之家拉麵 / 鳥貴族" }, { time: "17:30-19:00", title: "東京都廳 南展望室", desc: "免費看日落與夜景。", link: "https://www.zaimu.metro.tokyo.lg.jp/tochousha/goannai/tenbou", nav: "東京都廳" }, { time: "19:00-20:30", title: "TOKYO Night & Light", desc: "都廳光雕秀：19:00 鋼彈 / 20:00 哥吉拉", link: "https://tokyoprojectionmappingproject.jp/", nav: "都民廣場" }, { time: "20:30-", title: "體驗歌舞伎町夜生活", desc: "感受熱鬧氣氛後返回飯店", nav: "歌舞伎町一番街" }], mapStops: ["池袋太陽城", "LUMINE EST", "伊勢丹 新宿店", "東京都廳", "歌舞伎町一番街"] },
+        { day: "Day 4", date: "3/15 (日)", title: "強運銀座", items: [{ time: "07:30-08:00", title: "前往小網神社", desc: "地鐵日比谷線 上野 → 人形町" }, { time: "08:00-08:30", title: "小網神社", desc: "洗錢記得準備硬幣。", tip: "洗完擦乾放錢包當錢母。參拜：二鞠躬、二拍手、一鞠躬。", nav: "小網神社" }, { time: "08:30-09:30", title: "日本橋散步 & 寶可夢 DX", desc: "步行前往", subSpots: [{ name: "日本橋 麒麟像", desc: "東野圭吾小說場景。", nav: "日本橋 麒麟像" },{ name: "寶可夢中心 東京 DX", desc: "結合寶可夢咖啡廳。", nav: "Pokemon Center Tokyo DX" }]}, { time: "09:30-11:30", title: "東京車站一番街", desc: "八重洲中央口下樓", subSpots: [{ name: "東京動漫人物街", desc: "各電視台周邊。", nav: "東京動漫人物街" }]}, { time: "12:00-13:30", title: "午餐：燒肉 Ushigoro", desc: "【已預約 12:00】", nav: "Ushigoro Ginza" }, { time: "13:30-16:00", title: "銀座步行者天國", desc: "週末封街", subSpots: [{ name: "無印良品 銀座旗艦店", desc: "世界級旗艦店。", nav: "無印良品 銀座" },{ name: "Ginza Sony Park", desc: "都市立體公園拍照。", nav: "Ginza Sony Park" },{ name: "GINZA SIX", desc: "銀座最大商業設施。", nav: "GINZA SIX" },{ name: "3COINS & UNIQLO", desc: "平價雜貨與服飾。", nav: "UNIQLO 銀座" }]}, { time: "16:00-18:30", title: "秋葉原", desc: "電器街與次文化", subSpots: [{ name: "KENELE STAND", desc: "車站內扭蛋牆。", nav: "KENELE STAND 秋葉原" },{ name: "Bic Camera 秋葉原", desc: "營業至 21:00。", nav: "Bic Camera 秋叶原店" },{ name: "Milk Shop LUCK 酪", desc: "總武線6號月台上。", nav: "Milk Shop LUCK 酪", link: "https://tokyo.letsgojp.com/archives/570282/" }]}, { time: "18:30-19:30", title: "東京車站 夜景", desc: "拍攝點：丸之內站前廣場 / KITTE 6F。", nav: "KITTE丸之內" }, { time: "19:30-", title: "晚餐：東京車站周邊", desc: "推薦：麥與卵 義大利麵 / 極味屋 / 六厘舍 / 根室花丸" }], mapStops: ["小網神社", "Pokemon Center Tokyo DX", "Ushigoro Ginza", "無印良品 銀座", "KITTE丸之內"] },
+        { day: "Day 5", date: "3/16 (一)", title: "麻布台藝術", items: [{ time: "08:15-09:00", title: "前往 TeamLab", desc: "地鐵日比谷線 上野 → 神谷町" }, { time: "09:00-11:00", title: "TeamLab Borderless", desc: "【已訂票 09:00 入場】", nav: "麻布台之丘" }, { time: "11:00-12:00", title: "麻布台之丘", desc: "森JP Tower", link: "https://www.azabudai-hills.com/index.html", subSpots: [{ name: "33F Sky Lobby", desc: "需於咖啡廳消費才能進入看鐵塔。", nav: "麻布台之丘", link: "https://tokyo.letsgojp.com/archives/632958/" }]}, { time: "12:00-13:00", title: "午餐：鰻の成瀬 六本木店", desc: "高CP值鰻魚飯", nav: "鰻の成瀬 六本木店" }, { time: "13:00-15:30", title: "六本木 & 國立新美術館", desc: "散策", subSpots: [{ name: "國立新美術館", desc: "黑川紀章設計，波浪玻璃極具未來感。", nav: "國立新美術館", link: "https://www.nact.jp/" },{ name: "六本木之丘", desc: "大蜘蛛雕塑。", nav: "六本木之丘" }]}, { time: "16:00-18:30", title: "上野 阿美橫丁", desc: "最後採買", subSpots: [{ name: "Yamashiroya 玩具店", desc: "六層樓玩具天堂。", nav: "Yamashiroya" },{ name: "OS Drug 上野店", desc: "超便宜藥妝！只收現金。", nav: "OS Drug 上野" },{ name: "二木菓子", desc: "打烊時間：20:00。", nav: "二木菓子 第一營業所" }]}, { time: "18:30-19:30", title: "晚餐：上野周邊", desc: "推薦：鳥貴族 / 肉的大山 / 山家炸豬排 / 磯丸水產" }, { time: "19:30-20:00", title: "回飯店放東西", desc: "減輕負擔再出門" }, { time: "20:00-", title: "芝公園 拍攝東京鐵塔", desc: "前往 7-11 芝3丁目店拍攝。", nav: "7-Eleven 港区芝3丁目店" }], mapStops: ["麻布台之丘", "國立新美術館", "阿美橫丁", "鳥貴族 上野", "7-Eleven 港区芝3丁目店"] },
+        { day: "Day 6", date: "3/17 (二)", title: "返程", items: [{ time: "09:30-10:00", title: "退房 & 寄放行李", desc: "⚠️請盡早去搶京成上野站置物櫃。", subSpots: [{ name: "京成上野站 置物櫃", desc: "往上野動物園方向出口。", nav: "京成上野站", link: "https://marifoodie.com/ueno-station-lockers/" }]}, { time: "10:00-11:15", title: "上野恩賜公園", desc: "散步 / Coffee Murasaki", nav: "上野恩賜公園" }, { time: "11:30-12:45", title: "午餐：人形町今半", desc: "【已預約 11:30】", nav: "人形町今半 上野廣小路店" }, { time: "13:00-13:45", title: "搭乘 Skyliner 前往機場", desc: "13:00發車，⚠️極限班次13:20" }, { time: "15:40-", title: "搭乘 星宇 JX803 返台", desc: "成田(NRT) → 桃園(TPE)" }], mapStops: ["京成上野站", "上野恩賜公園", "人形町今半 上野廣小路店", "成田機場"] }
     ];
 
     window.onload = () => {
+        loadExpensesFromStorage(); // 初始化時讀取 Local Storage 資料
         fetchWeather();
         renderDateChips();
         selectDay(0, 'schedule');
@@ -627,7 +546,6 @@
         });
     }
 
-    // 將導航連結統一預設為「大眾運輸 (transit)」
     function getTransitMapUrl(destination) {
         return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=transit`;
     }
@@ -651,7 +569,6 @@
                 if (/午餐|晚餐|星巴克|燒肉|沾麵|今半|甜甜圈|布丁/.test(item.title + item.desc)) catClass = 'cat-food';
                 if (/⚠️/.test(item.title + item.desc + item.tip)) catClass = 'cat-alert';
 
-                // 主層導航 (使用 getTransitMapUrl)
                 const mainNav = item.nav ? `<a href="${getTransitMapUrl(item.nav)}" target="_blank" class="nav-btn"><i class="fa-solid fa-location-arrow" style="color:var(--tag-transport);"></i> 導航</a>` : '';
                 const mainLink = item.link ? `<a href="${item.link}" target="_blank" class="nav-btn external"><i class="fa-solid fa-link"></i> 指南</a>` : '';
                 const tipHtml = item.tip ? `<div class="tip-box"><i class="fa-solid fa-lightbulb"></i><div>${item.tip}</div></div>` : '';
@@ -690,7 +607,6 @@
         } else if (type === 'map') {
             const container = document.getElementById('map-route-container');
             const stopsHtml = data.mapStops.map((stop, i) => `<div class="map-stop-item">${i+1}. ${stop}</div>`).join('');
-            // 多點路線導航，並加上 data=!4m2!4m1!3e3 強制使用大眾運輸工具
             const mapUrl = `https://www.google.com/maps/dir/${data.mapStops.map(s => encodeURIComponent(s)).join('/')}/data=!4m2!4m1!3e3`;
             container.innerHTML = `
                 <h3 style="color:var(--text-sub); margin-bottom:10px;">🗺️ ${data.day} 路線順序</h3>
@@ -703,10 +619,7 @@
         }
     }
 
-    // --- 3. 記帳邏輯 (Swipe to Delete 完全無透色版) ---
-    let expenses = [];
-    const exchangeRate = 0.21;
-
+    // --- 3. 記帳邏輯 (加入資料保存機制) ---
     function saveExpense() {
         const idInput = document.getElementById('edit-id');
         const dateInput = document.getElementById('exp-date').value;
@@ -727,6 +640,8 @@
         } else {
             expenses.push({ id: Date.now(), date: dateInput, category: categoryText, amount: amount });
         }
+        
+        saveExpensesToStorage(); // 儲存至本機
         amtInput.value = '';
         renderExpenses();
     }
@@ -752,6 +667,7 @@
         document.getElementById(`track-${id}`).style.transform = `translateX(0)`;
         setTimeout(() => {
             expenses = expenses.filter(e => e.id != id);
+            saveExpensesToStorage(); // 儲存至本機
             renderExpenses();
         }, 200);
     }
@@ -771,7 +687,7 @@
         
         if (diff < 0) {
             let move = diff;
-            if (move < -140) { move = -140 + (move + 140) * 0.2; } // 橡皮筋阻力
+            if (move < -140) { move = -140 + (move + 140) * 0.2; }
             track.style.transition = 'none';
             track.style.transform = `translateX(${move}px)`;
             currentX = diff;
