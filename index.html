@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- PWA iOS 專屬標籤：加入主畫面時會使用這個設定 -->
+    <!-- PWA iOS 專屬標籤 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="東京獨旅">
-    <link rel="apple-touch-icon" href="app-icon.png"> <!-- 這裡呼叫你的圖片 -->
+    <link rel="apple-touch-icon" href="app-icon.png">
     <title>2026東京獨旅自由行</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Varela+Round&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 加入 Leaflet 互動式地圖庫 CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
         :root {
             --bg-color: #F7F4EB;
@@ -19,15 +21,15 @@
             --soft-shadow: 4px 4px 16px #E0E5D5, -4px -4px 16px #FFFFFF;
             --text-main: #4A4A4A;
             --text-sub: #8E8E93;
-            --tag-transport: #8AB4F8;
-            --tag-attraction: #81C995;
-            --tag-food: #FFB067;
+            --tag-transport: #4285F4; 
+            --tag-attraction: #34A853; 
+            --tag-food: #F9AB00; 
             --tag-alert: #FF8A65;
             --accent-color: #A3C7B6;
             --tip-bg: rgba(255, 176, 103, 0.15);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Varela Round', 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Varela Round', 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth;}
         
         body {
             background-color: var(--bg-color);
@@ -36,24 +38,14 @@
         }
 
         #app { width: 100%; max-width: 430px; height: 100dvh; position: relative; display: flex; flex-direction: column; overflow: hidden;}
-
         .glass { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 24px; box-shadow: var(--soft-shadow); }
 
-        /* --- Header (加入 App Icon) --- */
+        /* --- Header --- */
         header { padding: 15px 20px 5px; z-index: 10; transition: 0.3s; }
         .header-title-wrapper { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-        
-        /* 完美切除黑邊的圖示設定 */
-        .app-logo { 
-            width: 36px; height: 36px; 
-            border-radius: 22%; /* Apple 原生圓角比例，完美遮掉角落黑邊 */
-            object-fit: cover; 
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.1); 
-            border: 1px solid rgba(255,255,255,0.8);
-        }
+        .app-logo { width: 36px; height: 36px; border-radius: 22%; object-fit: cover; box-shadow: 2px 2px 8px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.8); }
         .header-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; margin: 0;}
         
-        /* 天氣 Liquid Glass 特效 */
         .weather-card {
             display: block; padding: 8px 15px; font-size: 13px; font-weight: 700; text-decoration: none; color: var(--text-main); 
             transition: transform 0.2s; margin-bottom: 5px; border-radius: 16px; position: relative; overflow: hidden;
@@ -68,15 +60,14 @@
         .weather-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
         .weather-desc { font-size: 11px; color: var(--text-sub); font-weight: 500;}
 
-        /* 內容區 */
-        .content-area { flex: 1; overflow-y: auto; padding: 0 20px 100px; scrollbar-width: none; }
+        /* --- 內容區 --- */
+        .content-area { flex: 1; overflow-y: auto; padding: 0 20px 110px; scrollbar-width: none; }
         .content-area::-webkit-scrollbar { display: none; }
         .tab-content { display: none; animation: fadeIn 0.4s ease; }
         .tab-content.active { display: block; }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- iOS 26 Liquid Glass 凍結列設計 --- */
+        /* --- iOS 26 Liquid Glass 凍結列 --- */
         .sticky-header { position: sticky; top: 0; z-index: 50; margin: 0 -20px 10px -20px; padding: 10px 20px; }
         .liquid-bg::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -106,6 +97,7 @@
         .nav-btn.photo { background: #E3F2FD; color: #1565C0; }
         
         .tip-box { margin-top: 12px; padding: 10px 12px; background: var(--tip-bg); border-left: 3px solid #FFA000; border-radius: 8px; font-size: 12px; color: #555; display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; }
+        .menu-tip { background: rgba(249, 171, 0, 0.1); border-left: 3px solid var(--tag-food); padding: 8px; border-radius: 6px; margin-top: 6px; font-size: 12px; }
         
         details.sub-spots { margin-top: 12px; background: rgba(255,255,255,0.6); border-radius: 12px; overflow: hidden; }
         details.sub-spots summary { padding: 10px 15px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; list-style: none; }
@@ -115,15 +107,17 @@
         .sub-spot-item { padding: 12px 15px; border-top: 1px dashed rgba(0,0,0,0.08); font-size: 13px; }
         .sub-spot-title { font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;}
 
+        .back-to-top-btn { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 auto 20px; padding: 10px 20px; width: fit-content; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); border-radius: 20px; border: 1px solid var(--glass-border); font-size: 13px; font-weight: 700; color: var(--text-main); box-shadow: 2px 2px 10px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; }
+        .back-to-top-btn:active { transform: scale(0.95); }
+
         .highlight-ticket { color: #e91e63; font-weight: 700; background: rgba(233, 30, 99, 0.1); padding: 4px 8px; border-radius: 6px; cursor: pointer; display: inline-block; transition: 0.2s; box-shadow: 1px 1px 4px rgba(233, 30, 99, 0.2);}
         .highlight-ticket:active { transform: scale(0.95); opacity: 0.8; }
         .highlight-reserve { color: #d32f2f; font-weight: 700; background: rgba(211, 47, 47, 0.1); padding: 4px 8px; border-radius: 6px; display: inline-block; cursor: pointer; transition: 0.2s; box-shadow: 1px 1px 4px rgba(211, 47, 47, 0.2);}
         .highlight-reserve:active { transform: scale(0.95); opacity: 0.8; }
 
-        .cat-transport .timeline-dot { background: var(--tag-transport); }
-        .cat-attraction .timeline-dot { background: var(--tag-attraction); }
-        .cat-food .timeline-dot { background: var(--tag-food); }
-        .cat-alert .timeline-dot { background: var(--tag-alert); }
+        .cat-transport .timeline-dot { background: #8AB4F8; }
+        .cat-attraction .timeline-dot { background: #81C995; }
+        .cat-food .timeline-dot { background: #FFB067; }
 
         /* --- 2. 預訂 Tab --- */
         details.glass-accordion { margin-bottom: 15px; border-radius: 24px; overflow: hidden; }
@@ -142,7 +136,7 @@
         .link-btn { background: var(--accent-color); color: white; padding: 6px 12px; border-radius: 12px; font-size: 12px; text-decoration: none; font-weight: 700; white-space: nowrap;}
         .qr-img { width: 65px; height: 65px; border-radius: 8px; border: 2px solid white; box-shadow: 2px 2px 8px rgba(0,0,0,0.1); object-fit: cover;}
 
-        /* --- 3. 記帳 Tab --- */
+        /* --- 3 & 5. 記帳與準備共用：滑動刪除 UI --- */
         .expense-dash { text-align: center; padding: 15px; }
         .total-twd { font-size: 32px; font-weight: 700; color: var(--accent-color); margin-bottom: 4px; }
         .total-jpy { font-size: 14px; color: var(--text-sub); }
@@ -152,7 +146,6 @@
         .daily-expense-group { margin-bottom: 20px; }
         .daily-expense-title { font-size: 14px; font-weight: 700; color: var(--text-sub); margin-bottom: 10px; padding-left: 5px; display: flex; justify-content: space-between;}
         
-        /* 🔥 iOS 原生滑動刪除 */
         .swipe-wrapper { overflow: hidden; border-radius: 16px; margin-bottom: 8px; position: relative; background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); box-shadow: var(--soft-shadow); }
         .swipe-track { display: flex; flex-wrap: nowrap; width: 100%; transform: translateX(0); transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
         .swipe-content { flex: 0 0 100%; width: 100%; display: flex; justify-content: space-between; padding: 16px; align-items: center; box-sizing: border-box; background: transparent; }
@@ -163,39 +156,46 @@
         .swipe-btn.delete { background: #E53935; }
 
         /* --- 4. 地圖 Tab --- */
-        .map-route-card { padding: 20px; margin-bottom: 15px; }
-        .map-stops { margin: 15px 0; padding-left: 10px; border-left: 2px dashed var(--accent-color); }
-        .map-stop-item { position: relative; padding-left: 15px; margin-bottom: 12px; font-size: 14px; font-weight: 700; }
-        .map-stop-item::before { content: ''; position: absolute; left: -21px; top: 4px; width: 10px; height: 10px; background: var(--accent-color); border-radius: 50%; border: 2px solid var(--bg-color); }
-        .route-btn { display: block; width: 100%; text-align: center; background: #4285F4; color: white; padding: 14px; border-radius: 16px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3); margin-top: 15px; }
+        #map-container-wrapper { position: relative; width: 100%; height: calc(100dvh - 300px); border-radius: 24px; overflow: hidden; box-shadow: var(--soft-shadow); border: 1px solid var(--glass-border); z-index: 1;}
+        #interactive-map { width: 100%; height: 100%; background: #e5e5e5;}
+        .map-legend { position: absolute; top: 10px; left: 10px; z-index: 1000; padding: 12px; font-size: 12px; font-weight: 700; line-height: 1.8; border-radius: 16px; background: rgba(255,255,255,0.85); backdrop-filter: blur(10px); box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        .leaflet-pane { z-index: 1 !important; }
+        .leaflet-control-container { z-index: 10 !important; }
 
-        /* --- 5. 準備 Tab --- */
-        .check-group { margin-bottom: 24px; }
-        .check-group h3 { font-size: 15px; margin-bottom: 12px; color: var(--text-sub); padding-left: 5px;}
-        .check-item { display: flex; align-items: center; gap: 12px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s;}
-        .check-box { width: 22px; height: 22px; border: 2px solid var(--accent-color); border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .check-item.done .check-box { background: var(--accent-color); }
-        .check-item.done .check-box::after { content: '✓'; color: white; font-size: 14px; }
-        .check-item.done .check-text { text-decoration: line-through; color: var(--text-sub); }
+        /* --- 5. 準備 Tab 動態 UI --- */
+        .plan-group { margin-bottom: 24px; }
+        .plan-group-title { font-size: 15px; margin-bottom: 12px; color: var(--text-sub); padding-left: 5px; font-weight: 700;}
+        .plan-box { width: 22px; height: 22px; border: 2px solid var(--accent-color); border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; margin-right: 12px; flex-shrink: 0;}
+        .plan-item-done .plan-box { background: var(--accent-color); }
+        .plan-item-done .plan-box::after { content: '✓'; color: white; font-size: 14px; }
+        .plan-item-done .plan-text { text-decoration: line-through; color: var(--text-sub); }
+        .add-plan-row { display: flex; gap: 8px; margin-top: 10px; align-items: center;}
+        .add-plan-input { flex: 1; border: 1px solid rgba(255,255,255,0.8); background: rgba(255,255,255,0.7); padding: 12px 16px; border-radius: 16px; font-size: 14px; outline: none; box-shadow: inset 2px 2px 6px rgba(0,0,0,0.03); color: var(--text-main); font-weight: 500;}
+        .add-plan-btn { width: 42px; height: 42px; border-radius: 14px; background: var(--accent-color); color: white; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(163, 199, 182, 0.4); flex-shrink: 0;}
+        .add-plan-btn:active { transform: scale(0.9); }
 
-        /* --- iOS 26 Bottom Nav --- */
+        /* --- 浮動圓角導覽列 --- */
         nav { 
-            position: absolute; bottom: 0; left: 0; right: 0; 
-            height: 75px; padding: 0 35px 10px 35px; 
+            position: absolute; bottom: 20px; left: 20px; right: 20px; 
+            height: 70px; padding: 0 15px; border-radius: 40px; 
             display: flex; justify-content: space-between; align-items: center; z-index: 100; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08); 
         }
         nav::before { 
             content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-            background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); 
-            filter: url(#liquid-filter); border-top: 1px solid rgba(255,255,255,0.6); z-index: -1; 
+            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); 
+            filter: url(#liquid-filter); border-radius: 40px; border: 1px solid rgba(255,255,255,0.9); z-index: -1; 
         }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-sub); cursor: pointer; transition: 0.3s; width: 45px; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-sub); cursor: pointer; transition: 0.3s; width: 50px; }
         .nav-item i { font-size: 20px; transition: transform 0.3s; }
         .nav-item span { font-size: 10px; font-weight: 700; }
         .nav-item.active { color: var(--accent-color); }
         .nav-item.active i { transform: translateY(-4px) scale(1.2); }
     </style>
 </head>
+
 <body>
 
 <!-- SVG Liquid Glass 濾鏡 -->
@@ -207,7 +207,7 @@
 </svg>
 
 <div id="app">
-    <!-- Header 加入圖片與完美裁切 -->
+    <!-- Header -->
     <header id="main-header">
         <div class="header-title-wrapper">
             <img src="app-icon.png" alt="Logo" class="app-logo" onerror="this.style.display='none'">
@@ -222,7 +222,7 @@
         </a>
     </header>
 
-    <div class="content-area">
+    <div class="content-area" id="main-content">
         
         <!-- 1. 行程 Tab -->
         <div id="tab-schedule" class="tab-content active">
@@ -240,6 +240,7 @@
                 <div class="accordion-content">
                     <div class="bp-row"><div><div class="bp-label">去程 (虎航)</div><div class="bp-val">3/12 06:15</div></div><div class="bp-val" style="color:var(--accent-color);">IT200</div></div>
                     <div class="bp-row" style="font-size:12px;"><span>TPE (桃園 T1)</span><i class="fa-solid fa-arrow-right"></i><span>NRT (成田)</span></div><div class="bp-label">座位: 25A</div>
+                    <!-- 機場接送提醒 -->
                     <div style="margin-top: 8px; text-align: left;">
                         <span style="font-size: 11px; color: #E53935; font-weight: 700;"><i class="fa-solid fa-car"></i> 【已預約機場接送】03:30 出發</span>
                     </div>
@@ -276,13 +277,11 @@
                 <summary class="accordion-header"><i class="fa-solid fa-utensils"></i> 餐廳預訂</summary>
                 <div class="accordion-content">
                     <div class="ticket-item">
-                        <div style="display:flex;gap:12px;align-items:center;"><div class="ticket-icon">🥩</div>
-                        <div><div style="font-weight:700;font-size:14px;">Ushigoro 銀座</div><div class="bp-label">3/15 12:00</div></div></div>
+                        <div style="display:flex;gap:12px;align-items:center;"><div class="ticket-icon">🥩</div><div><div style="font-weight:700;font-size:14px;">Ushigoro 銀座</div><div class="bp-label">3/15 12:00</div></div></div>
                         <a href="https://r.tablecheck.co/CL0/https:%2F%2Fwww.tablecheck.com%2Fja%2Freservations%2F5GUDSY/1/0100019c54fe764b-b2b29c69-4fd4-42d6-8c66-d0c9ef57e3a1-000000/Psw45Hx90vuFmpJmLQgIymwZXrDmSapaFguY1HQMl9M=444" target="_blank" class="link-btn" style="background:#d32f2f;">查看訂位</a>
                     </div>
                     <div class="ticket-item">
-                        <div style="display:flex;gap:12px;align-items:center;"><div class="ticket-icon">🍲</div>
-                        <div><div style="font-weight:700;font-size:14px;">今半 上野廣小路</div><div class="bp-label">3/17 11:30</div></div></div>
+                        <div style="display:flex;gap:12px;align-items:center;"><div class="ticket-icon">🍲</div><div><div style="font-weight:700;font-size:14px;">今半 上野廣小路</div><div class="bp-label">3/17 11:30</div></div></div>
                         <a href="https://r.tablecheck.co/CL0/https:%2F%2Fwww.tablecheck.com%2Fja%2Freservations%2FKQHM59/1/0100019c07cc8607-b058db8b-1757-47ff-8f17-284d79e685c1-000000/pLCZrneoqlqrgvJUqcvUeZ0YYIu2LIH_6uoqfXmzrbk=442" target="_blank" class="link-btn" style="background:#d32f2f;">查看訂位</a>
                     </div>
                 </div>
@@ -301,12 +300,8 @@
             <div class="expense-form">
                 <input type="date" id="exp-date" class="input-glass" value="2026-03-12">
                 <select id="exp-category" class="input-glass">
-                    <option value="飲食">🍽️ 飲食</option>
-                    <option value="購物">🛍️ 購物</option>
-                    <option value="門票">🎟️ 門票</option>
-                    <option value="紀念品">🎁 紀念品</option>
-                    <option value="交通">🚆 交通</option>
-                    <option value="其他">📌 其他</option>
+                    <option value="飲食">🍽️ 飲食</option><option value="購物">🛍️ 購物</option><option value="門票">🎟️ 門票</option>
+                    <option value="紀念品">🎁 紀念品</option><option value="交通">🚆 交通</option><option value="其他">📌 其他</option>
                 </select>
                 <input type="number" id="exp-amount" class="input-glass" style="grid-column: span 2;" placeholder="輸入日幣金額 (¥)" pattern="\d*">
                 <input type="hidden" id="edit-id" value="">
@@ -320,47 +315,20 @@
             <div class="sticky-header liquid-bg">
                 <div class="date-picker" id="date-picker-map"></div>
             </div>
-            <div id="map-route-container" style="margin-top: 5px;"></div>
+            <div id="map-container-wrapper">
+                <div id="interactive-map"></div>
+                <div class="map-legend">
+                    <div class="legend-item"><span class="legend-dot" style="background: var(--tag-transport);"></span> 交通 / 住宿</div>
+                    <div class="legend-item"><span class="legend-dot" style="background: var(--tag-attraction);"></span> 觀光景點</div>
+                    <div class="legend-item"><span class="legend-dot" style="background: var(--tag-food);"></span> 美食 / 購物</div>
+                </div>
+            </div>
         </div>
 
         <!-- 5. 準備 Tab -->
         <div id="tab-planning" class="tab-content">
-            <div class="check-group">
-                <h3>🧴 生活用品</h3>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">護照 & 實體日幣</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">證件、信用卡</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">口罩</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">乳液、化妝水 (化妝包)</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">刮鬍刀</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">輕便拖鞋</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">香水</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">摺疊傘</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">衛生紙 / 濕紙巾</span></div>
-            </div>
-            <div class="check-group">
-                <h3>📱 3C 產品</h3>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">手機</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">行動電源 (必帶放隨身)</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">充電線 & 轉接頭</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">相機</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">降噪耳機</span></div>
-            </div>
-            <div class="check-group">
-                <h3>👕 衣物</h3>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">衣服 (換洗)</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">褲子</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">保暖外套 (洋蔥式穿搭)</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">帽子 / 配件</span></div>
-            </div>
-            <div class="check-group">
-                <h3>🧳 雜項</h3>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">常備藥 / 小護士 / 防蚊液</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">壓縮袋</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">夾鏈袋</span></div>
-                <div class="check-item glass" onclick="this.classList.toggle('done')"><div class="check-box"></div><span class="check-text">購物袋</span></div>
-            </div>
+            <div id="planning-list-container"></div>
         </div>
-
     </div>
 
     <!-- Bottom Nav -->
@@ -373,22 +341,47 @@
     </nav>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
-    // --- 0. 資料持久化 (Local Storage) 初始化 ---
-    let expenses = [];
+    // --- 0. 資料持久化 (Local Storage) ---
+    let expenses =[];
     const exchangeRate = 0.21;
+    
+    // 預設準備清單 (動態擴充與刪除)
+    const defaultPlans =[
+        { cat: "🧴 生活用品", items:[
+            { id: "p1", text: "護照 & 實體日幣", done: false }, { id: "p2", text: "證件、信用卡", done: false }, 
+            { id: "p3", text: "口罩", done: false }, { id: "p4", text: "乳液、化妝水 (化妝包)", done: false },
+            { id: "p5", text: "刮鬍刀", done: false }, { id: "p6", text: "輕便拖鞋", done: false },
+            { id: "p7", text: "香水", done: false }, { id: "p8", text: "摺疊傘", done: false }, { id: "p9", text: "衛生紙 / 濕紙巾", done: false }
+        ]},
+        { cat: "📱 3C 產品", items:[
+            { id: "p10", text: "手機", done: false }, { id: "p11", text: "行動電源 (必帶)", done: false },
+            { id: "p12", text: "充電線 & 轉接頭", done: false }, { id: "p13", text: "相機", done: false }, { id: "p14", text: "降噪耳機", done: false }
+        ]},
+        { cat: "👕 衣物", items:[
+            { id: "p15", text: "衣服 (換洗)", done: false }, { id: "p16", text: "褲子", done: false },
+            { id: "p17", text: "保暖外套 (洋蔥式穿搭)", done: false }, { id: "p18", text: "帽子 / 配件", done: false }
+        ]},
+        { cat: "🧳 雜項", items:[
+            { id: "p19", text: "常備藥 / 小護士 / 防蚊液", done: false }, { id: "p20", text: "壓縮袋", done: false },
+            { id: "p21", text: "夾鏈袋", done: false }, { id: "p22", text: "購物袋", done: false }
+        ]}
+    ];
+    let plans =[];
 
-    // 讀取手機/電腦裡的儲存資料
-    function loadExpensesFromStorage() {
-        const stored = localStorage.getItem('tokyoTripExpenses');
-        if (stored) {
-            expenses = JSON.parse(stored);
-        }
+    function loadData() { 
+        const e = localStorage.getItem('tokyoExpenses'); 
+        if(e) expenses = JSON.parse(e); 
+        
+        const p = localStorage.getItem('tokyoPlans'); 
+        if(p) { plans = JSON.parse(p); } else { plans = JSON.parse(JSON.stringify(defaultPlans)); }
     }
-
-    // 將資料寫入手機/電腦保存
-    function saveExpensesToStorage() {
-        localStorage.setItem('tokyoTripExpenses', JSON.stringify(expenses));
+    
+    function saveData() { 
+        localStorage.setItem('tokyoExpenses', JSON.stringify(expenses)); 
+        localStorage.setItem('tokyoPlans', JSON.stringify(plans)); 
     }
 
     // --- 1. 即時天氣 API ---
@@ -401,111 +394,324 @@
             let emoji = '⛅', advice = '適合出遊，注意早晚溫差。';
             
             if(code === 0) { emoji = '☀️'; advice = '晴朗好天氣！出門記得防曬，採洋蔥式穿搭。'; }
-            else if(code <= 3) { emoji = '⛅'; advice = '多雲時晴，氣候舒適，非常適合逛街散步。'; }
+            else if(code <= 3) { emoji = '⛅'; advice = '多雲時晴，氣候舒適，非常適合逛街。'; }
             else if(code <= 67) { emoji = '🌧️'; advice = '雨天！出門務必攜帶摺疊傘，建議穿防水鞋。'; }
             else if(code <= 77) { emoji = '❄️'; advice = '下雪機率高，請穿著厚外套與防滑鞋保暖！'; }
             
             document.querySelector('.weather-top').innerHTML = `<span>📍 東京即時天氣 (點擊看詳情)</span><span style="color:var(--accent-color); font-size:16px;">${emoji} ${temp}°C</span>`;
             document.querySelector('.weather-desc').innerText = advice;
-        } catch (e) {
-            document.querySelector('.weather-desc').innerText = '天氣連線失敗，請稍後再試。';
-        }
+        } catch (e) { document.querySelector('.weather-desc').innerText = '天氣連線失敗，請稍後再試。'; }
     }
 
-    // --- 2. 行程資料 (保持所有資料不遺失) ---
-    const scheduleData = [
+    function scrollToTop() { 
+        document.getElementById('main-content').scrollTo({ top: 0, behavior: 'smooth' }); 
+    }
+
+    // --- 2. 完整行程資料庫 ---
+    const scheduleData =[
         {
-            day: "Day 1", date: "3/12 (四)", title: "淺草下町",
-            items: [
+            day: "Day 1", date: "3/12 (四)", title: "淺草下町", icon: "🏮",
+            items:[
                 { time: "06:15-10:35", title: "搭乘 虎航 IT200", desc: "桃園(TPE) → 成田(NRT)" },
                 { time: "11:20-12:10", title: "機場移動至上野", desc: "搭乘 Skyliner (車程約41分) → 京成上野", tip: "京成上野站出來就是不忍池，走到飯店寄放行李約5-7分。", nav: "京成上野站到APA飯店" },
-                { time: "12:30-13:30", title: "午餐：上野周邊", desc: "推薦：名代宇奈とと (鰻魚飯) 或 鴨to蔥拉麵" },
+                { 
+                    time: "12:30-13:30", title: "午餐：上野周邊", desc: "寄放行李後覓食推薦：",
+                    subSpots:[
+                        { name: "名代 宇奈とと (鰻魚飯)", desc: "<div class='menu-tip'><b>推薦：</b>雙層鰻魚飯<br><b>日文：</b>うな丼ダブル (Unadon Double)<br>※通常需要排隊。</div>", nav: "名代 宇奈とと 上野店" },
+                        { name: "鴨to蔥 (拉麵)", desc: "<div class='menu-tip'><b>推薦：</b>鴨肉拉麵<br><b>日文：</b>鴨らーめん (Kamo Ramen)<br>※排隊名店，需先購買食券再排。</div>", nav: "鴨to葱" }
+                    ]
+                },
                 { 
                     time: "13:30-16:30", title: "淺草巡禮", desc: "地鐵：銀座線 上野 → 淺草 1號出口",
-                    subSpots: [
-                        { name: "淺草文化觀光中心", desc: "8樓免費展望台，可拍雷門全景與晴空塔。", nav: "淺草文化觀光中心" },
-                        { name: "淺草雷門 & 仲見世通", desc: "入寺請先在雷門前鞠躬，走參道兩側，手水舍洗手後再參拜。", nav: "淺草雷門", link: "https://www.senso-ji.jp/" },
+                    subSpots:[
+                        { name: "淺草文化觀光中心", desc: "8樓免費展望台，可拍雷門全景。", nav: "淺草文化觀光中心" },
+                        { name: "淺草雷門 & 仲見世通", desc: "入寺先在雷門鞠躬。", nav: "淺草雷門", link: "https://www.senso-ji.jp/" },
                         { name: "よろし化粧堂 仲見世店", desc: "推薦購買 365 天生日護手霜。", nav: "よろし化粧堂 仲見世店" },
-                        { name: "雷一茶 お抹茶体験店", desc: "品嚐濃郁抹茶甜點。", nav: "雷一茶 浅草本店" },
-                        { name: "壽々喜園", desc: "世界最濃抹茶冰淇淋！記得要買抹茶粉回去。", nav: "壽々喜園 浅草本店" }
+                        { name: "雷一茶 / 壽々喜園", desc: "必吃世界最濃抹茶冰淇淋！記得買抹茶粉。", nav: "壽々喜園 浅草本店" }
                     ]
                 },
-                { time: "16:30-17:00", title: "移動至晴空塔", desc: "步行走 SUMIDA RIVER WALK (約20分)", tip: "沿途可拍攝晴空塔與朝日啤酒金色便便💩。不想走也可搭淺草線只需3分鐘直達押上站！", nav: "淺草到晴空塔" },
+                { time: "16:30-17:00", title: "移動至晴空塔", desc: "步行走 SUMIDA RIVER WALK (約20分)", tip: "沿途可拍朝日啤酒金色便便💩。不想走也可搭淺草線只需3分鐘直達押上站！", nav: "淺草到晴空塔" },
                 { 
                     time: "17:00-19:00", title: "東京晴空塔", desc: "【已訂票 17:00 入場】",
-                    subSpots: [
-                        { name: "展望台 (Tembo Deck)", desc: "3月中日落時間約 17:45，可同時看日落與夜景。", nav: "東京晴空塔", link: "https://www.tokyo-skytree.jp/tw/" },
-                        { name: "寶可夢中心 (East Yard 4F)", desc: "必買：晴空塔限定「抱著烈空坐的皮卡丘」娃娃！", nav: "Pokemon Center Skytree" }
+                    subSpots:[
+                        { name: "展望台 (Tembo Deck)", desc: "可同時看日落與夜景。", nav: "東京晴空塔", link: "https://www.tokyo-skytree.jp/tw/" },
+                        { name: "寶可夢中心 (East Yard 4F)", desc: "必買：晴空塔限定皮卡丘！", nav: "Pokemon Center Skytree" }
                     ]
                 },
-                { time: "19:00-20:30", title: "晚餐：Solamachi商場", desc: "六厘舍沾麵 / 利久牛舌" },
+                { 
+                    time: "19:00-20:30", title: "晚餐：Solamachi", desc: "商場內解決晚餐推薦：",
+                    subSpots:[
+                        { name: "六厘舍 (沾麵)", desc: "<div class='menu-tip'><b>推薦：</b>特製沾麵<br><b>日文：</b>特製つけめん (Tokusei Tsukemen)</div>", nav: "六厘舎 TOKYO スカイツリータウン・ソラマチ店" },
+                        { name: "利久牛舌", desc: "<div class='menu-tip'><b>推薦：</b>牛舌定食<br><b>日文：</b>牛たん定食 (Gyutan Teishoku)</div>", nav: "牛たん炭焼 利久 東京ソラマチ店" }
+                    ]
+                },
                 { 
                     time: "20:30-", title: "返回上野 / 晚間活動", desc: "地鐵：押上 → 上野",
-                    subSpots: [
-                        { name: "淺草寺 夜間點燈", desc: "回程可順路繞去拍沒人的雷門夜景。", nav: "淺草寺" },
+                    subSpots:[
+                        { name: "淺草寺 夜間點燈", desc: "回程順路拍沒人的雷門夜景。", nav: "淺草寺" },
                         { name: "浅草ROXまつり湯", desc: "營業至隔日 09:00，可泡湯放鬆。", nav: "浅草ROXまつり湯", link: "https://www.matsuri-yu.com/" },
-                        { name: "治一郎 買布丁", desc: "Ecute上野店內。注意營業時間只到 22:00！", nav: "治一郎 ecute上野店" },
+                        { name: "治一郎 買布丁", desc: "Ecute上野店內。注意營業至 22:00！", nav: "治一郎 ecute上野店" },
                         { name: "唐吉訶德 御徒町店", desc: "睡不著可去逛，營業至半夜 1:00。", nav: "唐吉訶德 御徒町店" }
                     ]
                 }
             ],
-            mapStops: ["京成上野站", "淺草雷門", "SUMIDA RIVER WALK", "東京晴空塔", "唐吉訶德 御徒町店"]
+            mapData:[
+                { name: "京成上野站", lat: 35.7114, lng: 139.7746, type: "transport" }, 
+                { name: "淺草雷門", lat: 35.7147, lng: 139.7967, type: "attraction" }, 
+                { name: "東京晴空塔", lat: 35.7100, lng: 139.8107, type: "attraction" }, 
+                { name: "六厘舎 TOKYO", lat: 35.7101, lng: 139.8122, type: "food" }, 
+                { name: "唐吉訶德 御徒町", lat: 35.7075, lng: 139.7730, type: "food" }
+            ]
         },
         {
-            day: "Day 2", date: "3/13 (五)", title: "潮流澀谷",
-            items: [
+            day: "Day 2", date: "3/13 (五)", title: "潮流澀谷", icon: "🛍️",
+            items:[
                 { 
-                    time: "08:00-09:45", title: "中目黑 / 代官山晨間散步", desc: "地鐵：日比谷線 上野 → 中目黑",
-                    subSpots: [
-                        { name: "星巴克臻選® 東京烘焙工坊", desc: "07:00開門。掃QR抽號碼牌。可點擊右方查看推薦菜單。", nav: "星巴克臻選東京烘焙工坊", photo: "https://drive.google.com/file/d/1yOb2W329fnoTHgSk5bCYtWdIqYspAqD6/view?usp=drive_link" },
-                        { name: "代官山 T-SITE (蔦屋書店)", desc: "09:00開門，世界最美書店之一。", nav: "代官山 T-SITE" },
-                        { name: "I’m donut ? Nakameguro", desc: "10:00開門，超人氣生甜甜圈，需有排隊心理準備。", nav: "I’m donut ? 中目黑" }
+                    time: "08:00-09:45", title: "中目黑晨間散步", desc: "地鐵：日比谷線 上野 → 中目黑",
+                    subSpots:[
+                        { name: "星巴克臻選® 東京烘焙工坊", desc: "07:00開門。掃QR抽號碼牌。可點擊右方相機查看菜單。", nav: "星巴克臻選東京烘焙工坊", photo: "https://drive.google.com/file/d/1yOb2W329fnoTHgSk5bCYtWdIqYspAqD6/view?usp=drive_link" },
+                        { name: "I’m donut ?", desc: "10:00開門，超人氣生甜甜圈。", nav: "I’m donut ? 中目黑" }
                     ]
                 },
-                { time: "09:45-10:30", title: "明治神宮", desc: "參拜流程：鳥居前一鞠躬 → 走參道兩側 → 洗手漱口 → 拜殿「二鞠躬、二拍手、一鞠躬」", nav: "明治神宮", link: "https://www.meijijingu.or.jp/guide/" },
+                { time: "09:45-10:30", title: "明治神宮", desc: "參拜流程：鳥居前一鞠躬 → 走參道兩側", nav: "明治神宮", link: "https://www.meijijingu.or.jp/guide/" },
                 { 
                     time: "10:30-13:30", title: "原宿表參道逛街", desc: "注意：多數店家 11:00 開門",
-                    subSpots: [
+                    subSpots:[
                         { name: "伊良可樂 渋谷神宮前", desc: "日本超紅手工精釀可樂。", nav: "伊良可樂 渋谷神宮前" },
-                        { name: "#C-pla+ 原宿竹下通店", desc: "09:30開門，超大扭蛋店可先逛。", nav: "#C-pla 原宿" },
+                        { name: "#C-pla+ 原宿竹下通店", desc: "09:30開門，超大扭蛋店。", nav: "#C-pla 原宿" },
                         { name: "and ST (旗艦店)", desc: "11:00開門，原宿站出口對面。", nav: "and ST 原宿" },
-                        { name: "東急廣場 原角 (HARAKADO)", desc: "平田晃久設計，如「編織」般的不規則玻璃帷幕，頂樓有超美戶外露臺。", nav: "東急プラザ原宿「ハラカド」" },
-                        { name: "NUMBER SUGAR", desc: "11:00開門。推薦：No.1香草、No.2海鹽。", nav: "NUMBER SUGAR 表參道" },
+                        { name: "東急廣場 原角 (HARAKADO)", desc: "平田晃久設計，頂樓有超美戶外露臺。", nav: "東急プラザ原宿「ハラカド」" },
+                        { name: "NUMBER SUGAR", desc: "推薦：No.1香草、No.2海鹽。", nav: "NUMBER SUGAR 表參道" },
                         { name: "表參道之丘", desc: "安藤忠雄設計，斜坡走道與挑高空間是拍照亮點。", nav: "表參道之丘" },
                         { name: "BEAMS & HOKA 原宿", desc: "都在附近，可順路逛。", nav: "BEAMS 原宿" }
                     ]
                 },
-                { time: "13:30-14:30", title: "午餐：Suage 湯咖哩 澀谷店", desc: "提早吃避開尖峰。推薦必加點「炸花椰菜」。", nav: "Suage澀谷店" },
                 { 
-                    time: "14:30-18:00", title: "神南區與澀谷逛街", desc: "沿途一路往南逛回車站",
-                    subSpots: [
-                        { name: "FREAK'S STORE Shibuya", desc: "神南區潮流選物店。", nav: "FREAK'S STORE 澀谷" },
-                        { name: "HOKA 澀谷", desc: "若原宿沒買到可來這。", nav: "HOKA Shibuya" },
-                        { name: "BEAMS JAPAN 澀谷", desc: "東急Plaza 2F，販售許多日本限定伴手禮。", nav: "BEAMS JAPAN 澀谷" },
-                        { name: "任天堂 東京旗艦店 🍄", desc: "位於 PARCO 6F。", nav: "Nintendo TOKYO" },
-                        { name: "寶可夢中心 🔴", desc: "位於 PARCO 6F，門口有超帥超夢。", nav: "Pokemon Center Shibuya" }
+                    time: "13:30-14:30", title: "午餐：Suage 湯咖哩", desc: "提早吃避開尖峰。", 
+                    subSpots:[
+                        { name: "點餐推薦", desc: "<div class='menu-tip'><b>推薦主餐：</b>脆皮知床雞肉蔬菜咖哩<br><b>日文：</b>パリパリ知床鶏と野菜カレー<br><b>必加點：</b>炸花椰菜 (揚げブロッコリー)</div>", nav: "Suage澀谷店" }
                     ]
                 },
-                { time: "18:00-", title: "澀谷十字路口 & 晚餐", desc: "拍照後吃晚餐", tip: "免預約晚餐推薦：澀谷西武百貨8F「活美登利 迴轉壽司」(翻桌快) 或 回上野吃「山家炸豬排」(高CP值)。", nav: "澀谷十字路口" }
+                { 
+                    time: "14:30-18:00", title: "神南區與澀谷逛街", desc: "一路往南逛回車站",
+                    subSpots:[
+                        { name: "FREAK'S STORE / HOKA", desc: "神南區潮流選物店。", nav: "FREAK'S STORE 澀谷" },
+                        { name: "任天堂 東京旗艦店 🍄", desc: "位於 PARCO 6F。", nav: "Nintendo TOKYO" },
+                        { name: "寶可夢中心 🔴", desc: "位於 PARCO 6F。", nav: "Pokemon Center Shibuya" }
+                    ]
+                },
+                { 
+                    time: "18:00-", title: "晚餐：澀谷周邊", desc: "拍照後吃晚餐 (推薦免預約)：",
+                    subSpots:[
+                        { name: "活美登利 迴轉壽司", desc: "<div class='menu-tip'>位於澀谷西武百貨 8F。需抽號碼牌，但翻桌快CP值極高！</div>", nav: "活美登利 西武渋谷店" },
+                        { name: "山家炸豬排 (回上野吃)", desc: "<div class='menu-tip'><b>推薦：</b>炸里肌豬排定食<br><b>日文：</b>ロースかつ定食 (Rosu Katsu Teishoku)</div>", nav: "山家 上野店" }
+                    ]
+                }
             ],
-            mapStops: ["星巴克臻選東京烘焙工坊", "明治神宮", "NUMBER SUGAR 表參道", "Suage 澀谷店", "澀谷 PARCO"]
+            mapData:[
+                { name: "星巴克臻選", lat: 35.6486, lng: 139.6934, type: "food" }, 
+                { name: "明治神宮", lat: 35.6764, lng: 139.6993, type: "attraction" }, 
+                { name: "NUMBER SUGAR", lat: 35.6672, lng: 139.7061, type: "food" }, 
+                { name: "Suage 澀谷店", lat: 35.6593, lng: 139.7032, type: "food" }, 
+                { name: "澀谷 PARCO", lat: 35.6622, lng: 139.6987, type: "food" }
+            ]
         },
-        { day: "Day 3", date: "3/14 (六)", title: "池袋新宿", items: [{ time: "10:00-13:00", title: "池袋 Sunshine City", desc: "JR山手線前往", subSpots: [{ name: "寶可夢中心 MEGA TOKYO", desc: "旗艦店級別。", nav: "Pokemon Center Mega Tokyo" },{ name: "轉蛋的森林 (總本店)", desc: "超大型扭蛋樂園。", nav: "ガシャポンのデパート池袋総本店" }]}, { time: "13:00-14:00", title: "午餐：池袋周邊", desc: "推薦：Miurano Hamburg / 無敵家拉麵 / 天麩羅 網八", nav: "三浦のハンバーグ 池袋" }, { time: "14:00-16:30", title: "新宿逛街", desc: "JR山手線：池袋 → 新宿", subSpots: [{ name: "LUMINE EST 新宿 (B1)", desc: "買 Pensta (企鵝周邊)。", nav: "LUMINE EST" },{ name: "伊勢丹新宿店 男士館", desc: "日本最強男裝百貨。", nav: "伊勢丹 新宿店 男館" },{ name: "KIDDY LAND 新宿店", desc: "動漫周邊。", nav: "KIDDY LAND 新宿" },{ name: "BEAMS JAPAN 新宿", desc: "1-5F販售日本特色與服飾。", nav: "BEAMS JAPAN 新宿" },{ name: "KEN BOX", desc: "迷你車模型專賣店。", nav: "ミニカーショップ ケンボックス" },{ name: "新宿東寶大樓", desc: "拍攝哥吉拉大頭。", nav: "新宿東宝ビル" },{ name: "東急歌舞伎町TOWER", desc: "新宿新地標。", nav: "東急歌舞伎町タワー" }]}, { time: "16:30-17:30", title: "晚餐：新宿周邊", desc: "推薦(免預約)：慎 Udon / 龍之家拉麵 / 鳥貴族" }, { time: "17:30-19:00", title: "東京都廳 南展望室", desc: "免費看日落與夜景。", link: "https://www.zaimu.metro.tokyo.lg.jp/tochousha/goannai/tenbou", nav: "東京都廳" }, { time: "19:00-20:30", title: "TOKYO Night & Light", desc: "都廳光雕秀：19:00 鋼彈 / 20:00 哥吉拉", link: "https://tokyoprojectionmappingproject.jp/", nav: "都民廣場" }, { time: "20:30-", title: "體驗歌舞伎町夜生活", desc: "感受熱鬧氣氛後返回飯店", nav: "歌舞伎町一番街" }], mapStops: ["池袋太陽城", "LUMINE EST", "伊勢丹 新宿店", "東京都廳", "歌舞伎町一番街"] },
-        { day: "Day 4", date: "3/15 (日)", title: "強運銀座", items: [{ time: "07:30-08:00", title: "前往小網神社", desc: "地鐵日比谷線 上野 → 人形町" }, { time: "08:00-08:30", title: "小網神社", desc: "洗錢記得準備硬幣。", tip: "洗完擦乾放錢包當錢母。參拜：二鞠躬、二拍手、一鞠躬。", nav: "小網神社" }, { time: "08:30-09:30", title: "日本橋散步 & 寶可夢 DX", desc: "步行前往", subSpots: [{ name: "日本橋 麒麟像", desc: "東野圭吾小說場景。", nav: "日本橋 麒麟像" },{ name: "寶可夢中心 東京 DX", desc: "結合寶可夢咖啡廳。", nav: "Pokemon Center Tokyo DX" }]}, { time: "09:30-11:30", title: "東京車站一番街", desc: "八重洲中央口下樓", subSpots: [{ name: "東京動漫人物街", desc: "各電視台周邊。", nav: "東京動漫人物街" }]}, { time: "12:00-13:30", title: "午餐：燒肉 Ushigoro", desc: "【已預約 12:00】", nav: "Ushigoro Ginza" }, { time: "13:30-16:00", title: "銀座步行者天國", desc: "週末封街", subSpots: [{ name: "無印良品 銀座旗艦店", desc: "世界級旗艦店。", nav: "無印良品 銀座" },{ name: "Ginza Sony Park", desc: "都市立體公園拍照。", nav: "Ginza Sony Park" },{ name: "GINZA SIX", desc: "銀座最大商業設施。", nav: "GINZA SIX" },{ name: "3COINS & UNIQLO", desc: "平價雜貨與服飾。", nav: "UNIQLO 銀座" }]}, { time: "16:00-18:30", title: "秋葉原", desc: "電器街與次文化", subSpots: [{ name: "KENELE STAND", desc: "車站內扭蛋牆。", nav: "KENELE STAND 秋葉原" },{ name: "Bic Camera 秋葉原", desc: "營業至 21:00。", nav: "Bic Camera 秋叶原店" },{ name: "Milk Shop LUCK 酪", desc: "總武線6號月台上。", nav: "Milk Shop LUCK 酪", link: "https://tokyo.letsgojp.com/archives/570282/" }]}, { time: "18:30-19:30", title: "東京車站 夜景", desc: "拍攝點：丸之內站前廣場 / KITTE 6F。", nav: "KITTE丸之內" }, { time: "19:30-", title: "晚餐：東京車站周邊", desc: "推薦：麥與卵 義大利麵 / 極味屋 / 六厘舍 / 根室花丸" }], mapStops: ["小網神社", "Pokemon Center Tokyo DX", "Ushigoro Ginza", "無印良品 銀座", "KITTE丸之內"] },
-        { day: "Day 5", date: "3/16 (一)", title: "麻布台藝術", items: [{ time: "08:15-09:00", title: "前往 TeamLab", desc: "地鐵日比谷線 上野 → 神谷町" }, { time: "09:00-11:00", title: "TeamLab Borderless", desc: "【已訂票 09:00 入場】", nav: "麻布台之丘" }, { time: "11:00-12:00", title: "麻布台之丘", desc: "森JP Tower", link: "https://www.azabudai-hills.com/index.html", subSpots: [{ name: "33F Sky Lobby", desc: "需於咖啡廳消費才能進入看鐵塔。", nav: "麻布台之丘", link: "https://tokyo.letsgojp.com/archives/632958/" }]}, { time: "12:00-13:00", title: "午餐：鰻の成瀬 六本木店", desc: "高CP值鰻魚飯", nav: "鰻の成瀬 六本木店" }, { time: "13:00-15:30", title: "六本木 & 國立新美術館", desc: "散策", subSpots: [{ name: "國立新美術館", desc: "黑川紀章設計，波浪玻璃極具未來感。", nav: "國立新美術館", link: "https://www.nact.jp/" },{ name: "六本木之丘", desc: "大蜘蛛雕塑。", nav: "六本木之丘" }]}, { time: "16:00-18:30", title: "上野 阿美橫丁", desc: "最後採買", subSpots: [{ name: "Yamashiroya 玩具店", desc: "六層樓玩具天堂。", nav: "Yamashiroya" },{ name: "OS Drug 上野店", desc: "超便宜藥妝！只收現金。", nav: "OS Drug 上野" },{ name: "二木菓子", desc: "打烊時間：20:00。", nav: "二木菓子 第一營業所" }]}, { time: "18:30-19:30", title: "晚餐：上野周邊", desc: "推薦：鳥貴族 / 肉的大山 / 山家炸豬排 / 磯丸水產" }, { time: "19:30-20:00", title: "回飯店放東西", desc: "減輕負擔再出門" }, { time: "20:00-", title: "芝公園 拍攝東京鐵塔", desc: "前往 7-11 芝3丁目店拍攝。", nav: "7-Eleven 港区芝3丁目店" }], mapStops: ["麻布台之丘", "國立新美術館", "阿美橫丁", "鳥貴族 上野", "7-Eleven 港区芝3丁目店"] },
-        { day: "Day 6", date: "3/17 (二)", title: "返程", items: [{ time: "09:30-10:00", title: "退房 & 寄放行李", desc: "⚠️請盡早去搶京成上野站置物櫃。", subSpots: [{ name: "京成上野站 置物櫃", desc: "往上野動物園方向出口。", nav: "京成上野站", link: "https://marifoodie.com/ueno-station-lockers/" }]}, { time: "10:00-11:15", title: "上野恩賜公園", desc: "散步 / Coffee Murasaki", nav: "上野恩賜公園" }, { time: "11:30-12:45", title: "午餐：人形町今半", desc: "【已預約 11:30】", nav: "人形町今半 上野廣小路店" }, { time: "13:00-13:45", title: "搭乘 Skyliner 前往機場", desc: "13:00發車，⚠️極限班次13:20" }, { time: "15:40-", title: "搭乘 星宇 JX803 返台", desc: "成田(NRT) → 桃園(TPE)" }], mapStops: ["京成上野站", "上野恩賜公園", "人形町今半 上野廣小路店", "成田機場"] }
+        { 
+            day: "Day 3", date: "3/14 (六)", title: "池袋新宿", icon: "👾",
+            items:[
+                { 
+                    time: "10:00-13:00", title: "池袋 Sunshine City", desc: "JR山手線前往", 
+                    subSpots:[
+                        { name: "寶可夢中心 MEGA TOKYO", desc: "旗艦店級別。", nav: "Pokemon Center Mega Tokyo" },
+                        { name: "轉蛋的森林", desc: "超大型扭蛋樂園。", nav: "ガシャポンのデパート池袋総本店" }
+                    ]
+                }, 
+                { 
+                    time: "13:00-14:00", title: "午餐：池袋周邊", desc: "逛完吃午餐", 
+                    subSpots:[
+                        { name: "Miura no Hamburg", desc: "<div class='menu-tip'><b>推薦：</b>手工漢堡排<br><b>日文：</b>手ごねハンバーグ (Hamburg)</div>", nav: "三浦のハンバーグ 池袋" },
+                        { name: "麵創房 無敵家", desc: "<div class='menu-tip'><b>推薦：</b>本丸麵 (招牌豬骨拉麵)<br><b>日文：</b>本丸麺 (Honmaru Men)<br>※經常大排長龍。</div>", nav: "麺創房 無敵家" }
+                    ]
+                }, 
+                { 
+                    time: "14:00-16:30", title: "新宿逛街", desc: "JR山手線：池袋 → 新宿", 
+                    subSpots:[
+                        { name: "LUMINE EST 新宿 (B1)", desc: "買 Pensta (企鵝周邊)。", nav: "LUMINE EST" },
+                        { name: "伊勢丹新宿店 男士館", desc: "日本最強男裝百貨。", nav: "伊勢丹 新宿店 男館" },
+                        { name: "KIDDY LAND 新宿店", desc: "動漫周邊。", nav: "KIDDY LAND 新宿" },
+                        { name: "BEAMS JAPAN 新宿", desc: "販售日本特色與服飾。", nav: "BEAMS JAPAN 新宿" },
+                        { name: "KEN BOX", desc: "迷你車模型專賣店。", nav: "ミニカーショップ ケンボックス" },
+                        { name: "新宿東寶大樓", desc: "拍攝哥吉拉大頭。", nav: "新宿東宝ビル" },
+                        { name: "東急歌舞伎町TOWER", desc: "新宿新地標，結合霓虹居酒屋。", nav: "東急歌舞伎町タワー" }
+                    ]
+                }, 
+                { 
+                    time: "16:30-17:30", title: "晚餐：新宿周邊", desc: "提早吃避開人潮。",
+                    subSpots:[
+                        { name: "慎 Udon (烏龍麵)", desc: "<div class='menu-tip'><b>推薦：</b>竹簍冷烏龍麵<br><b>日文：</b>ざるうどん (Zaru Udon)<br>⚠️<b>強烈建議：</b>一到新宿先去店門口機器「抽整理券」！</div>", nav: "慎 うどん" },
+                        { name: "龍之家 (拉麵)", desc: "<div class='menu-tip'><b>推薦：</b>沾麵 (附粥)<br><b>日文：</b>つけ麺 もつ (Tsukemen Motsu)</div>", nav: "ラーメン 龍の家 新宿 小滝橋通り店" },
+                        { name: "鳥貴族 新宿南口店", desc: "<div class='menu-tip'><b>推薦：</b>高CP值烤肉串</div>", nav: "鳥貴族 新宿南口店" }
+                    ]
+                }, 
+                { time: "17:30-19:00", title: "東京都廳 南展望室", desc: "免費看日落與夜景。", tip: "⚠️進場前需檢查包包，全面禁止使用腳架！建議先至官網確認人數。", link: "https://www.zaimu.metro.tokyo.lg.jp/tochousha/goannai/tenbou", nav: "東京都廳" }, 
+                { time: "19:00-20:30", title: "TOKYO Night & Light", desc: "都廳光雕秀：19:00 鋼彈 / 20:00 哥吉拉", link: "https://tokyoprojectionmappingproject.jp/", nav: "都民廣場" }, 
+                { time: "20:30-", title: "歌舞伎町夜生活", desc: "感受熱鬧氣氛", nav: "歌舞伎町一番街" }
+            ], 
+            mapData:[
+                { name: "池袋太陽城", lat: 35.7289, lng: 139.7193, type: "attraction" }, 
+                { name: "慎 うどん", lat: 35.6865, lng: 139.6974, type: "food" }, 
+                { name: "東京都廳", lat: 35.6896, lng: 139.6921, type: "attraction" }
+            ] 
+        },
+        { 
+            day: "Day 4", date: "3/15 (日)", title: "強運銀座", icon: "⛩️",
+            items:[
+                { time: "07:30-08:00", title: "前往小網神社", desc: "地鐵日比谷線 上野 → 人形町" }, 
+                { time: "08:00-08:30", title: "小網神社", desc: "洗錢記得準備硬幣。", tip: "洗完擦乾放錢包當錢母。參拜：二鞠躬、二拍手、一鞠躬。", nav: "小網神社" }, 
+                { 
+                    time: "08:30-09:30", title: "日本橋散步 & 寶可夢 DX", desc: "步行前往", 
+                    subSpots:[
+                        { name: "日本橋 麒麟像", desc: "東野圭吾小說場景。", nav: "日本橋 麒麟像" },
+                        { name: "寶可夢中心 東京 DX", desc: "結合寶可夢咖啡廳。", nav: "Pokemon Center Tokyo DX" }
+                    ]
+                }, 
+                { 
+                    time: "09:30-11:30", title: "東京車站一番街", desc: "八重洲中央口下樓", 
+                    subSpots:[
+                        { name: "東京動漫人物街", desc: "各電視台周邊。", nav: "東京動漫人物街" }
+                    ]
+                }, 
+                { time: "12:00-13:30", title: "午餐：燒肉 Ushigoro", desc: "【已預約 12:00】", nav: "Ushigoro Ginza" }, 
+                { 
+                    time: "13:30-16:00", title: "銀座步行者天國", desc: "週末封街", 
+                    subSpots:[
+                        { name: "無印良品 銀座旗艦店", desc: "世界級旗艦店，有專屬生鮮與烘焙坊。", nav: "無印良品 銀座" },
+                        { name: "Ginza Sony Park", desc: "都市立體公園拍照。", nav: "Ginza Sony Park" },
+                        { name: "GINZA SIX", desc: "銀座最大商業設施，中庭有大師裝置藝術。", nav: "GINZA SIX" }
+                    ]
+                }, 
+                { 
+                    time: "16:00-18:30", title: "秋葉原", desc: "電器街與次文化", 
+                    subSpots:[
+                        { name: "KENELE STAND", desc: "車站內精緻扭蛋牆。", nav: "KENELE STAND 秋葉原" },
+                        { name: "Milk Shop LUCK 酪", desc: "總武線6號月台上。", nav: "Milk Shop LUCK 酪", link: "https://tokyo.letsgojp.com/archives/570282/" }
+                    ]
+                }, 
+                { 
+                    time: "18:30-19:30", title: "東京車站 夜景", desc: "拍攝點：丸之內站前廣場 / KITTE 6F。", tip: "📷 拍攝秘訣：KITTE 6F 屋頂庭園禁用腳架，要注意玻璃反光。若下過雨，丸之內廣場地面會有極美的紅磚車站倒影！", nav: "KITTE丸之內" 
+                }, 
+                { 
+                    time: "19:30-", title: "晚餐：東京車站周邊", desc: "免預約推薦名單：",
+                    subSpots:[
+                        { name: "麦と卵 (生義大利麵)", desc: "<div class='menu-tip'><b>推薦：</b>究極培根蛋麵<br><b>日文：</b>究極のカルボナーラ<br>位於八重洲北口，麵條超Q彈。</div>", nav: "麦と卵 東京駅八重洲北口店" },
+                        { name: "極味屋 東京站店", desc: "<div class='menu-tip'><b>推薦：</b>極味屋漢堡排<br><b>日文：</b>極味やハンバーグ (Kiwamiya Hamburg)<br>自己烤的鐵板漢堡排，油煙味重需注意。</div>", nav: "極味屋 東京駅店" },
+                        { name: "六厘舍 (拉麵街)", desc: "<div class='menu-tip'><b>推薦：</b>特製沾麵<br><b>日文：</b>特製つけめん</div>", nav: "六厘舎 東京ラーメンストリート" },
+                        { name: "根室花丸 迴轉壽司", desc: "<div class='menu-tip'><b>推薦：</b>生干貝 (生ほたて) / 鮭魚 (サーモン)<br>位於KITTE 5F。⚠️建議提早上樓抽號碼牌！</div>", nav: "回転寿司 根室花まる KITTE丸の内店" }
+                    ]
+                }
+            ], 
+            mapData:[
+                { name: "小網神社", lat: 35.6845, lng: 139.7820, type: "attraction" }, 
+                { name: "Pokemon Center Tokyo DX", lat: 35.6806, lng: 139.7735, type: "food" }, 
+                { name: "Ushigoro Ginza", lat: 35.6740, lng: 139.7680, type: "food" }, 
+                { name: "KITTE丸之內", lat: 35.6800, lng: 139.7661, type: "attraction" }
+            ] 
+        },
+        { 
+            day: "Day 5", date: "3/16 (一)", title: "麻布台藝術", icon: "🗼",
+            items:[
+                { time: "08:15-09:00", title: "前往 TeamLab", desc: "地鐵日比谷線 上野 → 神谷町" }, 
+                { time: "09:00-11:00", title: "TeamLab Borderless", desc: "【已訂票 09:00 入場】", nav: "麻布台之丘" }, 
+                { 
+                    time: "11:00-12:00", title: "麻布台之丘", desc: "Heatherwick網格建築與藝術街區", tip: "⚠️33F觀景台新制：需至指定餐廳消費。B1搭S1電梯至33F，或1F搭S2電梯至34F。", link: "https://platinumaps.jp/d/azabudaihills", 
+                    subSpots:[
+                        { name: "📍 官方電子地圖", desc: "點擊右方按鈕開啟官方導航圖。", link: "https://platinumaps.jp/d/azabudaihills" },
+                        { name: "中央廣場 (Central Green)", desc: "波浪網格建築，草皮上有公共藝術裝置，拍攝東京鐵塔絕佳視角。", nav: "麻布台之丘 中央廣場" },
+                        { name: "% ARABICA 咖啡", desc: "<div class='menu-tip'>京都超人氣咖啡！推薦去4F有絕美戶外露臺。<br><b>推薦：</b>京都拿鐵 (Kyoto Latte)</div>", nav: "% ARABICA Tokyo Azabudai Hills 4F" },
+                        { name: "Sky Room Cafe (34F)", desc: "<div class='menu-tip'>搭S2電梯。低消飲料約 ¥800 ➕ 入場費 ¥500。僅收刷卡/電子支付。</div>", nav: "Hills House Sky Room Cafe & Bar", link: "https://tokyo.letsgojp.com/archives/632958/" },
+                        { name: "ÉCHIRÉ 艾許奶油 (1F)", desc: "<div class='menu-tip'><b>推薦必買：</b>奶油界LV，可頌與鐵盒餅乾<br><b>日文：</b>クロワッサン (可頌)</div>", nav: "ÉCHIRÉ L'Atelier du Beurre" }
+                    ]
+                }, 
+                { 
+                    time: "12:00-13:00", title: "午餐：鰻の成瀬 六本木店", desc: "高CP值免預約鰻魚飯", 
+                    subSpots:[
+                        { name: "點餐推薦", desc: "<div class='menu-tip'><b>推薦：</b>鰻魚重 松 (整尾份量最大)<br><b>日文：</b>うな重 松 (Unaju Matsu)</div>", nav: "鰻の成瀬 六本木店" }
+                    ]
+                }, 
+                { 
+                    time: "13:00-15:30", title: "六本木藝術散策", desc: "美術館與街區亮點", 
+                    subSpots:[
+                        { name: "國立新美術館", desc: "黑川紀章設計，波浪玻璃極具未來感。<div class='menu-tip'>📷<b>亮點：</b>2F圓錐上的咖啡廳是《你的名字》男主角約會取景地！</div>", nav: "國立新美術館", link: "https://www.nact.jp/" },
+                        { name: "21_21 DESIGN SIGHT", desc: "安藤忠雄與三宅一生打造。屋頂如折彎的鐵板，極簡清水模超好拍。", nav: "21_21 DESIGN SIGHT" },
+                        { name: "六本木之丘", desc: "必拍巨大蜘蛛雕塑(Maman)、毛利庭園。", nav: "六本木之丘" }
+                    ]
+                }, 
+                { 
+                    time: "16:00-18:30", title: "上野 阿美橫丁", desc: "最後採買", 
+                    subSpots:[
+                        { name: "Yamashiroya 玩具店", desc: "六層樓玩具天堂。", nav: "Yamashiroya" },
+                        { name: "OS Drug 上野店", desc: "超便宜藥妝！只收現金。", nav: "OS Drug 上野" },
+                        { name: "二木菓子", desc: "打烊時間：20:00。", nav: "二木菓子 第一營業所" }
+                    ]
+                }, 
+                { 
+                    time: "18:30-19:30", title: "晚餐：上野周邊", desc: "推薦名單：",
+                    subSpots:[
+                        { name: "鳥貴族 上野中央通店", desc: "<div class='menu-tip'><b>推薦：</b>烤雞腿肉串 (醬汁/鹽味)<br><b>日文：</b>もも貴族焼 たれ/塩 (Momo Kizokuyaki)</div>", nav: "鳥貴族 上野中央通店" },
+                        { name: "肉的大山", desc: "<div class='menu-tip'><b>推薦：</b>特製炸肉餅<br><b>日文：</b>やみつきメンチ (Yamitsuki Menchi)</div>", nav: "肉の大山 上野店" },
+                        { name: "磯丸水產", desc: "24小時營業的海鮮居酒屋。", nav: "磯丸水産 上野6丁目店" }
+                    ]
+                }, 
+                { time: "19:30-20:00", title: "回飯店放東西", desc: "減輕負擔再出門" }, 
+                { time: "20:00-", title: "芝公園 拍攝東京鐵塔", desc: "前往 7-11 芝3丁目店拍攝。", nav: "7-Eleven 港区芝3丁目店" }
+            ], 
+            mapData:[
+                { name: "麻布台之丘", lat: 35.6612, lng: 139.7397, type: "attraction" }, 
+                { name: "國立新美術館", lat: 35.6652, lng: 139.7263, type: "attraction" }, 
+                { name: "鳥貴族 上野", lat: 35.7102, lng: 139.7733, type: "food" }, 
+                { name: "7-11 芝3丁目", lat: 35.6585, lng: 139.7454, type: "attraction" }
+            ] 
+        },
+        { 
+            day: "Day 6", date: "3/17 (二)", title: "返程", icon: "✈️",
+            items:[
+                { 
+                    time: "09:30-10:00", title: "退房 & 寄放行李", desc: "⚠️請盡早去搶京成上野站置物櫃。", 
+                    subSpots:[
+                        { name: "京成上野站 置物櫃", desc: "位於 Skyliner 剪票口旁，往上野動物園方向出口。", nav: "京成上野站", link: "https://marifoodie.com/ueno-station-lockers/" }
+                    ]
+                }, 
+                { 
+                    time: "10:00-11:15", title: "上野恩賜公園", desc: "散步 / 必拍景點", tip: "📷 必拍：不忍池與弁天堂、木造建築的星巴克、祈求好運的上野大佛。", nav: "上野恩賜公園" 
+                }, 
+                { 
+                    time: "11:30-12:45", title: "午餐：人形町今半", desc: "【已預約 11:30】", 
+                    subSpots:[
+                        { name: "點餐建議", desc: "<div class='menu-tip'><b>必吃：</b>壽喜燒套餐<br><b>日文：</b>すき焼き (Sukiyaki)</div>", nav: "人形町今半 上野廣小路店" }
+                    ]
+                }, 
+                { time: "13:00-13:45", title: "搭乘 Skyliner 前往機場", desc: "13:00發車，⚠️極限班次13:20" }, 
+                { time: "15:40-", title: "搭乘 星宇 JX803 返台", desc: "成田(NRT) → 桃園(TPE)" }
+            ], 
+            mapData:[
+                { name: "京成上野站", lat: 35.7114, lng: 139.7746, type: "transport" }, 
+                { name: "上野恩賜公園", lat: 35.7140, lng: 139.7730, type: "attraction" }, 
+                { name: "人形町今半", lat: 35.7082, lng: 139.7725, type: "food" }, 
+                { name: "成田機場", lat: 35.7719, lng: 140.3928, type: "transport" }
+            ] 
+        }
     ];
 
     window.onload = () => {
-        loadExpensesFromStorage(); // 初始化時讀取 Local Storage 資料
+        loadData();
         fetchWeather();
         renderDateChips();
         selectDay(0, 'schedule');
         selectDay(0, 'map');
         renderExpenses();
+        renderPlans();
     };
 
-    // --- Tab 切換與隱藏天氣 ---
     function switchTab(tabId, element) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -513,16 +719,19 @@
         element.classList.add('active');
 
         const weatherObj = document.getElementById('weather-display');
-        if(tabId === 'expense' || tabId === 'planning') {
-            weatherObj.style.display = 'none';
-        } else {
-            weatherObj.style.display = 'block';
+        if(tabId === 'expense' || tabId === 'planning') { 
+            weatherObj.style.display = 'none'; 
+        } else { 
+            weatherObj.style.display = 'block'; 
+        }
+        
+        if(tabId === 'map' && map) { 
+            setTimeout(() => { map.invalidateSize(); }, 100); 
         }
     }
 
-    // 跨頁面跳轉至預訂
-    function jumpToBookings() {
-        document.getElementById('nav-bookings').click();
+    function jumpToBookings() { 
+        document.getElementById('nav-bookings').click(); 
     }
 
     function renderDateChips() {
@@ -546,8 +755,8 @@
         });
     }
 
-    function getTransitMapUrl(destination) {
-        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=transit`;
+    function getTransitMapUrl(destination) { 
+        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=transit`; 
     }
 
     function formatText(text) {
@@ -556,10 +765,16 @@
             .replace(/【已預約(.*?)】/g, '<span class="highlight-reserve" onclick="jumpToBookings()"><i class="fa-solid fa-bell-concierge"></i> 【已預約$1】</span>');
     }
 
+    let map = null;
+    let markerLayer = null;
+    let routeLayer = null;
+
     function selectDay(index, type) {
         const data = scheduleData[index];
+        document.getElementById('main-content').scrollTop = 0; 
+        
         if (type === 'schedule') {
-            document.getElementById('day-title').innerText = `📌 ${data.title}`;
+            document.getElementById('day-title').innerText = `${data.icon} ${data.title}`;
             const container = document.getElementById('timeline-container');
             container.innerHTML = '';
             
@@ -569,7 +784,7 @@
                 if (/午餐|晚餐|星巴克|燒肉|沾麵|今半|甜甜圈|布丁/.test(item.title + item.desc)) catClass = 'cat-food';
                 if (/⚠️/.test(item.title + item.desc + item.tip)) catClass = 'cat-alert';
 
-                const mainNav = item.nav ? `<a href="${getTransitMapUrl(item.nav)}" target="_blank" class="nav-btn"><i class="fa-solid fa-location-arrow" style="color:var(--tag-transport);"></i> 導航</a>` : '';
+                const mainNav = item.nav ? `<a href="${getTransitMapUrl(item.nav)}" target="_blank" class="nav-btn"><i class="fa-solid fa-location-arrow" style="color:#4285F4;"></i> 導航</a>` : '';
                 const mainLink = item.link ? `<a href="${item.link}" target="_blank" class="nav-btn external"><i class="fa-solid fa-link"></i> 指南</a>` : '';
                 const tipHtml = item.tip ? `<div class="tip-box"><i class="fa-solid fa-lightbulb"></i><div>${item.tip}</div></div>` : '';
                 
@@ -579,7 +794,6 @@
                         const spotNav = spot.nav ? `<a href="${getTransitMapUrl(spot.nav)}" target="_blank" class="nav-btn"><i class="fa-solid fa-location-dot"></i></a>` : '';
                         const spotLink = spot.link ? `<a href="${spot.link}" target="_blank" class="nav-btn external"><i class="fa-solid fa-link"></i></a>` : '';
                         const spotPhoto = spot.photo ? `<a href="${spot.photo}" target="_blank" class="nav-btn photo"><i class="fa-solid fa-camera"></i> 菜單</a>` : '';
-                        
                         return `
                         <div class="sub-spot-item">
                             <div class="sub-spot-title"><i class="fa-solid fa-caret-right" style="color:var(--accent-color);"></i> ${spot.name}</div>
@@ -587,7 +801,16 @@
                             <div>${spotNav}${spotPhoto}${spotLink}</div>
                         </div>`;
                     }).join('');
-                    subSpotsHtml = `<details class="sub-spots"><summary><i class="fa-solid fa-list-ul"></i> 展開詳細景點 (${item.subSpots.length})</summary>${spotsList}</details>`;
+
+                    // 動態切換摺疊按鈕標題
+                    let accTitle = `<i class="fa-solid fa-list-ul"></i> 展開詳細景點 (${item.subSpots.length})`;
+                    if (catClass === 'cat-food') {
+                        accTitle = `<i class="fa-solid fa-utensils"></i> 查看餐廳介紹與必點 (${item.subSpots.length})`;
+                    } else if (/逛街|採買|商場|散策/.test(item.title)) {
+                        accTitle = `<i class="fa-solid fa-store"></i> 查看推薦店家與亮點 (${item.subSpots.length})`;
+                    }
+
+                    subSpotsHtml = `<details class="sub-spots"><summary>${accTitle}</summary>${spotsList}</details>`;
                 }
                 
                 container.innerHTML += `
@@ -604,87 +827,59 @@
                     </div>
                 `;
             });
+
+            container.innerHTML += `<div class="back-to-top-btn" onclick="scrollToTop()"><i class="fa-solid fa-arrow-up"></i> 回到頂部</div>`;
+
         } else if (type === 'map') {
-            const container = document.getElementById('map-route-container');
-            const stopsHtml = data.mapStops.map((stop, i) => `<div class="map-stop-item">${i+1}. ${stop}</div>`).join('');
-            const mapUrl = `https://www.google.com/maps/dir/${data.mapStops.map(s => encodeURIComponent(s)).join('/')}/data=!4m2!4m1!3e3`;
-            container.innerHTML = `
-                <h3 style="color:var(--text-sub); margin-bottom:10px;">🗺️ ${data.day} 路線順序</h3>
-                <div class="map-route-card glass">
-                    <div style="font-weight:700; font-size:16px;">${data.title}</div>
-                    <div class="map-stops">${stopsHtml}</div>
-                    <a href="${mapUrl}" target="_blank" class="route-btn"><i class="fa-solid fa-map-location-dot"></i> 開啟 Google Maps 導航</a>
-                </div>
-            `;
+            if (!map) {
+                map = L.map('interactive-map', { zoomControl: false }).setView([35.6895, 139.6917], 12);
+                L.control.zoom({ position: 'bottomright' }).addTo(map);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+                markerLayer = L.layerGroup().addTo(map);
+                routeLayer = L.layerGroup().addTo(map);
+            }
+            markerLayer.clearLayers(); 
+            routeLayer.clearLayers();
+            const latlngs =[];
+            
+            const getColor = (t) => { 
+                if(t === 'transport') return 'var(--tag-transport)'; 
+                if(t === 'attraction') return 'var(--tag-attraction)'; 
+                return 'var(--tag-food)'; 
+            };
+
+            data.mapData.forEach((spot, i) => {
+                latlngs.push([spot.lat, spot.lng]);
+                const customIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background-color:${getColor(spot.type)}; width:24px; height:24px; border-radius:50%; border:3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display:flex; justify-content:center; align-items:center; color:white; font-size:12px; font-weight:bold;">${i+1}</div>`,
+                    iconSize: [24, 24], iconAnchor: [12, 12]
+                });
+                L.marker([spot.lat, spot.lng], {icon: customIcon})
+                 .bindPopup(`<b>${i+1}. ${spot.name}</b><br><a href="${getTransitMapUrl(spot.name)}" target="_blank" style="color:#4285F4; text-decoration:none; font-weight:bold; margin-top:5px; display:block;">📍 Google 導航</a>`)
+                 .addTo(markerLayer);
+            });
+
+            if (latlngs.length > 1) {
+                L.polyline(latlngs, { color: '#4285F4', weight: 4, opacity: 0.7, dashArray: '8, 8' }).addTo(routeLayer);
+                map.fitBounds(L.polyline(latlngs).getBounds(), { padding:[40, 40] });
+            } else if (latlngs.length === 1) { 
+                map.setView(latlngs[0], 14); 
+            }
         }
     }
 
-    // --- 3. 記帳邏輯 (加入資料保存機制) ---
-    function saveExpense() {
-        const idInput = document.getElementById('edit-id');
-        const dateInput = document.getElementById('exp-date').value;
-        const catSelect = document.getElementById('exp-category');
-        const amtInput = document.getElementById('exp-amount');
-        const amount = parseInt(amtInput.value);
-        const categoryText = catSelect.options[catSelect.selectedIndex].text;
-        const editId = idInput.value;
-
-        if (!dateInput || !amount || amount <= 0) { alert('請填寫完整且有效的金額！'); return; }
-
-        if (editId) {
-            const exp = expenses.find(e => e.id == editId);
-            if(exp) { exp.date = dateInput; exp.category = categoryText; exp.amount = amount; }
-            document.getElementById('btn-save-exp').innerHTML = `<i class="fa-solid fa-check"></i> 確認新增`;
-            document.getElementById('btn-save-exp').style.background = 'var(--accent-color)';
-            idInput.value = '';
-        } else {
-            expenses.push({ id: Date.now(), date: dateInput, category: categoryText, amount: amount });
-        }
-        
-        saveExpensesToStorage(); // 儲存至本機
-        amtInput.value = '';
-        renderExpenses();
-    }
-
-    function editExpense(id) {
-        const exp = expenses.find(e => e.id == id);
-        if (!exp) return;
-        document.getElementById('exp-date').value = exp.date;
-        document.getElementById('exp-amount').value = exp.amount;
-        document.getElementById('edit-id').value = exp.id;
-        const catSelect = document.getElementById('exp-category');
-        for (let i = 0; i < catSelect.options.length; i++) {
-            if (catSelect.options[i].text === exp.category) { catSelect.selectedIndex = i; break; }
-        }
-        const btn = document.getElementById('btn-save-exp');
-        btn.innerHTML = `<i class="fa-solid fa-pen"></i> 更新儲存`;
-        btn.style.background = '#FFB067';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        document.getElementById(`track-${id}`).style.transform = `translateX(0)`;
-    }
-
-    function deleteExpense(id) {
-        document.getElementById(`track-${id}`).style.transform = `translateX(0)`;
-        setTimeout(() => {
-            expenses = expenses.filter(e => e.id != id);
-            saveExpensesToStorage(); // 儲存至本機
-            renderExpenses();
-        }, 200);
-    }
-
-    // 滑動相關邏輯
-    let startX = 0;
-    let currentX = 0;
+    // --- 共用滑動邏輯 (Swipe to Delete / Edit) ---
+    let startX = 0; let currentX = 0;
     
     window.ts = function(e) { 
         startX = e.touches[0].clientX; 
-        currentX = 0;
+        currentX = 0; 
     };
     
     window.tm = function(e, id) {
         let diff = e.touches[0].clientX - startX;
         let track = document.getElementById(`track-${id}`);
-        
         if (diff < 0) {
             let move = diff;
             if (move < -140) { move = -140 + (move + 140) * 0.2; }
@@ -697,20 +892,76 @@
     window.te = function(e, id) {
         let track = document.getElementById(`track-${id}`);
         track.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
-        if (currentX < -40) {
-            track.style.transform = `translateX(-140px)`;
-        } else {
-            track.style.transform = `translateX(0)`;
+        if (currentX < -40) { 
+            track.style.transform = `translateX(-140px)`; 
+        } else { 
+            track.style.transform = `translateX(0)`; 
         }
     };
+
+    // --- 3. 記帳邏輯 ---
+    function saveExpense() {
+        const idInput = document.getElementById('edit-id');
+        const dateInput = document.getElementById('exp-date').value;
+        const catSelect = document.getElementById('exp-category');
+        const amtInput = document.getElementById('exp-amount');
+        const amount = parseInt(amtInput.value);
+        const categoryText = catSelect.options[catSelect.selectedIndex].text;
+        const editId = idInput.value;
+
+        if (!dateInput || !amount || amount <= 0) { alert('請填寫有效金額！'); return; }
+
+        if (editId) {
+            const exp = expenses.find(e => e.id === editId);
+            if(exp) { exp.date = dateInput; exp.category = categoryText; exp.amount = amount; }
+            document.getElementById('btn-save-exp').innerHTML = `<i class="fa-solid fa-check"></i> 確認新增`;
+            document.getElementById('btn-save-exp').style.background = 'var(--accent-color)';
+            idInput.value = '';
+        } else { 
+            expenses.push({ id: `e-${Date.now()}`, date: dateInput, category: categoryText, amount: amount }); 
+        }
+        
+        saveData(); 
+        amtInput.value = ''; 
+        renderExpenses();
+    }
+
+    function editExpense(id) {
+        const exp = expenses.find(e => e.id === id);
+        if (!exp) return;
+        
+        document.getElementById('exp-date').value = exp.date;
+        document.getElementById('exp-amount').value = exp.amount;
+        document.getElementById('edit-id').value = exp.id;
+        const catSelect = document.getElementById('exp-category');
+        for (let i = 0; i < catSelect.options.length; i++) { 
+            if (catSelect.options[i].text === exp.category) { catSelect.selectedIndex = i; break; } 
+        }
+        
+        const btn = document.getElementById('btn-save-exp');
+        btn.innerHTML = `<i class="fa-solid fa-pen"></i> 更新儲存`;
+        btn.style.background = '#FFB067';
+        document.getElementById('main-content').scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById(`track-${id}`).style.transform = `translateX(0)`;
+    }
+
+    function deleteExpense(id) {
+        document.getElementById(`track-${id}`).style.transform = `translateX(0)`;
+        setTimeout(() => { 
+            expenses = expenses.filter(e => e.id !== id); 
+            saveData(); 
+            renderExpenses(); 
+        }, 200);
+    }
 
     function renderExpenses() {
         const container = document.getElementById('expense-list-container');
         container.innerHTML = '';
+        
         const grouped = expenses.reduce((acc, exp) => {
             if(!acc[exp.date]) acc[exp.date] = { total: 0, items: [] };
-            acc[exp.date].total += exp.amount;
-            acc[exp.date].items.push(exp);
+            acc[exp.date].total += exp.amount; 
+            acc[exp.date].items.push(exp); 
             return acc;
         }, {});
 
@@ -721,14 +972,14 @@
             grandTotalJpy += grouped[date].total;
             let itemsHtml = grouped[date].items.map(exp => `
                 <div class="swipe-wrapper">
-                    <div class="swipe-track" id="track-${exp.id}" ontouchstart="ts(event)" ontouchmove="tm(event, ${exp.id})" ontouchend="te(event, ${exp.id})">
+                    <div class="swipe-track" id="track-${exp.id}" ontouchstart="ts(event)" ontouchmove="tm(event, '${exp.id}')" ontouchend="te(event, '${exp.id}')">
                         <div class="swipe-content">
                             <div style="font-weight:700; color:var(--text-main); font-size:15px;">${exp.category}</div>
                             <div style="color:var(--accent-color); font-weight:700; font-size:16px;">¥ ${exp.amount.toLocaleString()}</div>
                         </div>
                         <div class="swipe-actions">
-                            <button class="swipe-btn edit" onclick="editExpense(${exp.id})"><i class="fa-solid fa-pen"></i></button>
-                            <button class="swipe-btn delete" onclick="deleteExpense(${exp.id})"><i class="fa-solid fa-trash"></i></button>
+                            <button class="swipe-btn edit" onclick="editExpense('${exp.id}')"><i class="fa-solid fa-pen"></i></button>
+                            <button class="swipe-btn delete" onclick="deleteExpense('${exp.id}')"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
                 </div>
@@ -747,6 +998,79 @@
         const totalTwd = Math.round(grandTotalJpy * exchangeRate);
         document.getElementById('total-jpy').innerText = `¥ ${grandTotalJpy.toLocaleString()} (匯率 ${exchangeRate})`;
         document.getElementById('total-twd').innerText = `NT$ ${totalTwd.toLocaleString()}`;
+    }
+
+    // --- 5. 準備清單邏輯 (動態新增與編輯) ---
+    function togglePlan(catIdx, itemIdx) { 
+        plans[catIdx].items[itemIdx].done = !plans[catIdx].items[itemIdx].done; 
+        saveData(); 
+        renderPlans(); 
+    }
+
+    function addPlan(catIdx) {
+        const input = document.getElementById(`add-plan-input-${catIdx}`);
+        const text = input.value.trim();
+        if(text) { 
+            plans[catIdx].items.push({ id: `p-${Date.now()}`, text: text, done: false }); 
+            saveData(); 
+            renderPlans(); 
+        }
+    }
+
+    function editPlan(catIdx, itemIdx, id) {
+        document.getElementById(`track-${id}`).style.transform = `translateX(0)`;
+        setTimeout(() => {
+            const newText = prompt("修改準備項目：", plans[catIdx].items[itemIdx].text);
+            if(newText && newText.trim() !== "") { 
+                plans[catIdx].items[itemIdx].text = newText.trim(); 
+                saveData(); 
+                renderPlans(); 
+            }
+        }, 100);
+    }
+
+    function deletePlan(catIdx, itemIdx, id) {
+        document.getElementById(`track-${id}`).style.transform = `translateX(0)`;
+        setTimeout(() => { 
+            plans[catIdx].items.splice(itemIdx, 1); 
+            saveData(); 
+            renderPlans(); 
+        }, 200);
+    }
+
+    function renderPlans() {
+        const container = document.getElementById('planning-list-container');
+        container.innerHTML = '';
+        
+        plans.forEach((group, catIdx) => {
+            let itemsHtml = group.items.map((item, itemIdx) => `
+                <div class="swipe-wrapper" style="background: rgba(255,255,255,0.4); margin-bottom: 5px;">
+                    <div class="swipe-track" id="track-${item.id}" ontouchstart="ts(event)" ontouchmove="tm(event, '${item.id}')" ontouchend="te(event, '${item.id}')">
+                        <div class="swipe-content" style="padding: 12px; cursor:pointer;" onclick="togglePlan(${catIdx}, ${itemIdx})">
+                            <div class="check-item ${item.done ? 'plan-item-done' : ''}" style="margin:0; padding:0; display:flex; align-items:center;">
+                                <div class="plan-box"></div>
+                                <span class="plan-text" style="font-weight:700;">${item.text}</span>
+                            </div>
+                        </div>
+                        <div class="swipe-actions">
+                            <button class="swipe-btn edit" onclick="editPlan(${catIdx}, ${itemIdx}, '${item.id}')"><i class="fa-solid fa-pen"></i></button>
+                            <button class="swipe-btn delete" onclick="deletePlan(${catIdx}, ${itemIdx}, '${item.id}')"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML += `
+                <div class="plan-group">
+                    <div class="plan-group-title">${group.cat}</div>
+                    ${itemsHtml}
+                    <div class="add-plan-row">
+                        <input type="text" id="add-plan-input-${catIdx}" class="add-plan-input" placeholder="新增項目...">
+                        <button class="add-plan-btn" onclick="addPlan(${catIdx})"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+            `;
+        });
     }
 </script>
 
